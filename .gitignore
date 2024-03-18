@@ -2,5 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
+plot_results.R
 out
 plots
