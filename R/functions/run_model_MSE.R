@@ -5,22 +5,18 @@
 ##========================================================================##
 run_model<-function(parms.list) {
 with(parms.list,{
-##====================================================## seed and directory
 set.seed(seednum)
-setwd(homedir)
 if(k>3) plot<-F ## no plots when running many iterations 
 ##====================================================## for single run only
-# setwd(codedir)
 # source("selectivity.R")
 # if(ricker_type=="const_beta") source("ricker.R")
 # if(ricker_type=="const_rmax") source("ricker_const_Rmax.R")
 # source("agecomp.R")
 # source("reprod_output.R")
 # source("DLMfit.R")
-# setwd(scendir);scen<-data.frame(read_excel("scenarios.xlsx"))
+# scen<-data.frame(read_excel("scenarios.xlsx"))
 # j=1;k=1;seednum=1
 # est_method<-"GLS"
-# setwd(codedir)
 # ## parms.list<-source("run_parameters.R")$value
 # parms.list<-source("run_parameters_MSE.R")$value
 # parms<-names(parms.list)
@@ -363,7 +359,6 @@ nyrec<-length(year_index) ## number of reconstructed years
 data<-data.frame(data_all[year_index,])
 
 ########################################################### assess MSY goals
-setwd(codedir)
 ##===========================================## Ricker fit to simulated data
 data$lnRS<-log(data$Rec/data$Esc)
 ##--------------------------------------------------------------------## GLS
