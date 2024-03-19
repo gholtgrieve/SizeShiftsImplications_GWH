@@ -21,12 +21,12 @@ if(var_beta){ mod$W[2,2]=exp(parm[2]) }
 if(var_alpha & var_beta){ mod$W[1,1]=exp(parm[2]);mod$W[2,2]=exp(parm[3])}
 return(mod)
 }
-dlm_out<-suppressWarnings(dlmMLE(y=lnRS,build=build_mod,parm=c(-.1,-.1,-.1),method="L-BFGS-B"))
+dlm_out<-dlmMLE(y=lnRS,build=build_mod,parm=c(-.1,-.1,-.1),method="L-BFGS-B")
 ## maximum likelihood optimization ('L-BFGS-B' or 'Nelder-Mead')
 lls<-dlm_out$value ## log-likelihood
 dlmMod<-build_mod(dlm_out$par) ## model with variance structure
 sigma<-sqrt(dlmMod$V)
-outsFilter<-suppressWarnings(dlmFilter(y=lnRS,mod=dlmMod)) ## added Kalman filter
+outsFilter<-dlmFilter(y=lnRS,mod=dlmMod) ## added Kalman filter
 outsSmooth<-dlmSmooth(outsFilter) ## added backward recursive smoothing
 alpha_y<-signif(outsSmooth$s[-1,1],4) ## alpha
 beta_y<-signif(outsSmooth$s[-1,2],5) ## beta

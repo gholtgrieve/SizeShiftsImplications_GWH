@@ -8,12 +8,13 @@ pkgs<-c("here","readxl","openxlsx","dplyr","gtools","faraway","RColorBrewer","gs
 if(length(setdiff(pkgs,rownames(installed.packages())))>0) { install.packages(setdiff(pkgs,rownames(installed.packages())), dependencies=TRUE) }
 invisible(lapply(pkgs,library,character.only=T))
 ##==============================================================## functions
-fxn<-list.files(paste0(here::here(),"/R/functions/"))[fxn!="parameters.R"]
+fxn<-list.files(paste0(here::here(),"/R/functions/"))
+fxn<-fxn[fxn!="parameters.R"]
 invisible(sapply(FUN=source,paste0(here::here(),"/R/functions/",fxn)))
 ##==============================================================## scenarios
-scen<-data.frame(read_excel("R/scenarios.xlsx")) ## list of all scenarios
+scen<-data.frame(read_excel(paste0(here::here(),"/R/scenarios.xlsx"))) 
 nscen<-dim(scen)[1] ## number of scenarios
-niter<-100 ## iterations per scenario
+niter<-3 ## iterations per scenario
 print(paste0("time estimate: ",round((niter*nscen/20)/60,2)," hours"))
 ##===========================================================## output lists
 output.list<-replicate(nscen,list(replicate(niter,list())))
@@ -27,7 +28,7 @@ for(j in 1:nscen) {
   for(k in 1:niter) {
     seednum<-seed.list[k] ## same iteration seeds for each scenario
     # print(paste0("scenario=",j," iteration=",k," seed=",seednum))
-    parms.list<-source("R/functions/parameters.R")$value
+    parms.list<-source(paste0(here::here(),"/R/functions/parameters.R"))$value
     mod.out<-try(run_model(parms.list=parms.list))
     if(class(mod.out)!="try-error") {
       para.list[[j]][[k]]<-mod.out$para ## true alpha and beta parameters
@@ -46,9 +47,9 @@ end.time<-Sys.time()
 print(round(end.time-start.time,2)) 
 time.save<-gsub(":","-",end.time)
 ##============================================================## save output
-save.image(paste0("R/out/run_",time.save,".Rdata"),compress=T)
-saveRDS(parms.list,paste0("R/out/run_",time.save,"_parms.Rdata"))
-write.xlsx(scen,file=paste0("R/out/run_",time.save,"_scen.xlsx"))
+save.image(paste0(here::here(),"/R/out/run_",time.save,".Rdata"),compress=T)
+saveRDS(parms.list,paste0(here::here(),"/R/out/run_",time.save,"_parms.Rdata"))
+write.xlsx(scen,file=paste0(here::here(),"/R/out/run_",time.save,"_scen.xlsx"))
 ##========================================================================##
 ##========================================================================##
 ##========================================================================##

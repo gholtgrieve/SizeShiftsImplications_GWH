@@ -443,9 +443,9 @@ colnames(sr_obs)<-c("alpha","beta","rho","sigma")
 if(harvmgmt %in% c("smsy_dlm_goal","umsy_dlm_goal")){
 dataDLM<-dplyr::select(dataObs,Rec=recRec,Esc=obsEsc)
 nrd<-dim(dataDLM)[1]
-if(var=="alpha") mod_dlm<-DLMfit(data=dataDLM,var_alpha=TRUE,var_beta=FALSE)
-if(var=="beta") mod_dlm<-DLMfit(data=dataDLM,var_alpha=FALSE,var_beta=TRUE)
-if(var=="both") mod_dlm<-DLMfit(data=dataDLM,var_alpha=TRUE,var_beta=TRUE)
+if(var=="alpha") mod_dlm<-suppressWarnings(DLMfit(data=dataDLM,var_alpha=TRUE, var_beta=FALSE))
+if(var=="beta") mod_dlm<-suppressWarnings(DLMfit(data=dataDLM,var_alpha=FALSE, var_beta=TRUE))
+if(var=="both") mod_dlm<-suppressWarnings(DLMfit(data=dataDLM,var_alpha=TRUE, var_beta=TRUE))
 sig_dlm<-mod_dlm$sigma
 log_a_dlm<-mod_dlm$results$alpha_y ## log-productivity
 a_dlm<-exp(log_a_dlm) ## productivity (alpha)
