@@ -53,7 +53,7 @@ n_select<-length(selectivity_names)
 
 ##========================================================================##
 ##========================================================================##
-##========================## Figure 1: trends in mean fecundity and egg mass
+##========================## Figure 2: trends in mean fecundity and egg mass
 ##========================================================================##
 ##========================================================================##
 nyrs<-10 ## number of years for calculating difference (3,5,10)
@@ -127,7 +127,7 @@ ggsave("Figure2.pdf",p,width=4.2,height=5.5,units="in")
 
 ##========================================================================##
 ##========================================================================##
-##===============================## Figure 2: differences in S_msy estimates
+##===============================## Figure 3: differences in S_msy estimates
 ##========================================================================##
 ##========================================================================##
 review_years<-seq((nyi+20),ny,goalfreq)
@@ -244,7 +244,7 @@ p<-plot_smsy %>% ggplot(aes(x=fct_inorder(trends),y=value,fill=fct_inorder(metho
         axis.text=element_text(size=10),
         axis.text.x=element_text(angle=90,vjust=0.5,hjust=1),
         axis.title=element_text(size=10),
-        panel.border=element_rect(fill=NA,size=1),
+        panel.border=element_rect(fill=NA,linewidth=1),
         legend.position="none")
 col.labs<-c("large-mesh","unselective","small-mesh")
 names(col.labs)<-c("8.5 inch gillnet","unselective","6 inch gillnet")
@@ -407,7 +407,7 @@ p<-dfp %>%
   labs(x="",y="") + 
   labs(color="Method")+
   theme(strip.background=element_blank(),
-        axis.line=element_line(size=0.1),
+        axis.line=element_line(linewidth=0.1),
         axis.text=element_text(size=10),
         axis.text.x=element_text(angle=90,vjust=0.5,hjust=1),
         axis.title=element_text(size=12),
@@ -467,7 +467,7 @@ p<-df_diff_plot2 %>%
   # filter(method!="DLM") %>%
   ggplot(aes(x=fct_inorder(trends),y=median,col=fct_inorder(method),group=method)) +
   geom_hline(yintercept=0,linetype="solid",size=0.1)+ 
-  geom_line(lwd=1) +
+  geom_line(linewidth=1) +
   geom_point(size=2.5) + 
   geom_point(shape=1,size=3,fill=NA,color="black") +
   scale_colour_manual(values=c("dodgerblue2","goldenrod1"))+
@@ -476,11 +476,11 @@ p<-df_diff_plot2 %>%
   labs(x="",y="Median difference in returns (%)") + 
   labs(color="")+
   theme(strip.background=element_blank(),
-        axis.line=element_line(size=0.1),
+        axis.line=element_line(linewidth=0.1),
         axis.text=element_text(size=10),
         axis.text.x=element_text(angle=90,vjust=0.5,hjust=1),
         axis.title=element_text(size=12),
-        panel.border=element_rect(fill=NA,size=1),
+        panel.border=element_rect(fill=NA,linewidth=1),
         legend.key.size=unit(0.5,'cm'),
         legend.title=element_text(size=10),
         legend.text=element_text(size=8),
