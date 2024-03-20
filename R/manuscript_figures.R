@@ -3,8 +3,7 @@
 ##                 Plot simulation model results for MSE                  ##
 ##                                                                        ##
 ##========================================================================##
-##===============================================================## packages
-pkgs<-c("here","tidyverse","dplyr","scales","RColorBrewer","readxl","gsl","vioplot", "caroline","ggplot2","viridis","forcats","gridExtra","lemon","fmsb","MetBrewer","ggradar","showtext","DataCombine","ggridges","ggExtra","remotes","ggpubr")
+pkgs<-c("here","tidyverse","dplyr","scales","RColorBrewer","readxl","gsl","vioplot", "caroline","ggplot2","viridis","forcats","gridExtra","lemon","fmsb","MetBrewer","ggradar","showtext","DataCombine","ggridges","ggExtra","remotes","ggpubr","gsl")
 if(length(setdiff(pkgs,rownames(installed.packages())))>0) {install.packages(setdiff(pkgs,rownames(installed.packages())),dependencies=TRUE)}
 invisible(lapply(pkgs,library,character.only=T))
 
@@ -85,15 +84,18 @@ for(j in 1:nscen) {
 }
 ##----------------------------------------------------------------## make df
 df_scen<-dplyr::select(scenarios,trends,selectivity,mgmt)
-df_egg_mass<-data.frame(cbind(df_scen,egg_trends))
-df_egg_mass<-dplyr::filter(df_egg_mass,mgmt=="smsy_goal")
-df_egg_mass<-dplyr::filter(df_egg_mass,trends!="continuing trends")
+df_egg_mass<-data.frame(cbind(df_scen,egg_trends)) %>%
+  dplyr::filter(mgmt=="smsy_goal") %>%
+  dplyr::filter(trends!="continuing trends")
 df_egg_mass$trends<-as.factor(as.character(df_egg_mass$trends))
-plot_egg_mass<-df_egg_mass %>% pivot_longer(!c(trends,selectivity,mgmt), names_to="iteration", values_to="value") %>% data.frame()
+plot_egg_mass<-df_egg_mass %>% 
+  pivot_longer(!c(trends,selectivity,mgmt),names_to="iteration",values_to="value") %>% 
+  data.frame()
 ##-----------------------------------------------------------## selectivity
-s_levels<-c("6 inch gillnet","unselective","8.5 inch gillnet")
-s_labels<-c("small-mesh","unselective","large-mesh")
-plot_egg_mass$sel_ordered<-factor(plot_egg_mass$selectivity,levels=s_levels,labels=s_labels)
+plot_egg_mass$sel_ordered<-factor(
+  plot_egg_mass$selectivity,
+  levels=c("6 inch gillnet","unselective","8.5 inch gillnet"),
+  labels=c("small-mesh","unselective","large-mesh"))
 plot_egg_mass<-dplyr::select(plot_egg_mass,-iteration,-mgmt,-selectivity)
 ##-----------------------------------------------------------------## ggplot
 jig<-position_dodge(width=0.6)
@@ -120,10 +122,72 @@ p<-plot_egg_mass %>%
         legend.key.size=unit(0.4,'cm'),
         legend.title=element_text(size=9),
         legend.text=element_text(size=8),
-        legend.position=c(0.82,0.86)
-  )
+        legend.position=c(0.82,0.86))
 p<-p+guides(fill=guide_legend(override.aes=list(size=0.3)))
 ggsave("Figure2.pdf",p,width=4.2,height=5.5,units="in")
+
+##========================================================================##
+##===================================================## alternative Figure 3
+##========================================================================##
+## plot S_msy estimates for all models
+review_years<-seq((nyi+20),ny,goalfreq)
+nrev<-length(review_years)
+myarray<-array(NA,dim=c(nscen,niter,nrev))
+S_msy_scen<-myarray
+for(j in 1:nscen) { 
+  for(k in 1:niter) { 
+    s_msy_est<-as.vector(unlist(S_msy.list[[j]][[k]]))
+    if(length(s_msy_est)!=0) S_msy_scen[j,k,]<-s_msy_est
+  } 
+} 
+##------------------------------------------------------------## time period
+## evaluated after 50 years, i.e. after the historical period
+S_msy_hist<-S_msy_scen[,,which(review_years==nyh)]
+##---------------------------------------------------------## add scenarios
+use_all<-dplyr::select(scenarios,trends,selectivity,mgmt)
+S_msy_df<-data.frame(cbind(use_all,S_msy_hist)) %>%
+  dplyr::filter(trends!="continuing trends")
+##--------------------------------------------------------## ordered factors
+S_msy_df$selectivity<-factor(
+  S_msy_df$selectivity,
+  levels=c("6 inch gillnet","unselective","8.5 inch gillnet"),
+  labels=c("small-mesh","unselective","large-mesh"))
+##----------------------------------------------------------------## rename
+S_msy_df<-S_msy_df %>%
+  mutate(mgmt=case_when(
+    mgmt=="smsy_goal" ~ "TRM",
+    mgmt=="s_eq_goal" ~ "YPR",
+    mgmt=="smsy_dlm_goal" ~ "DLM"))
+##-----------------------------------------------------------## long format
+plot_smsy_df<-S_msy_df %>% 
+  pivot_longer(!c(trends,selectivity,mgmt),
+               names_to="iteration",
+               values_to="value") %>% 
+  dplyr::select(-iteration) %>%
+  data.frame()
+plot_smsy_df<-plot_smsy_df[complete.cases(plot_smsy_df),] ## <1%
+##------------------------------------------------------------------## plot
+p<-plot_smsy_df %>% 
+  ggplot(aes(x=fct_inorder(trends),y=value,color=fct_inorder(mgmt)))+
+  scale_color_manual(values=c("darkgray",colors))+
+  stat_summary(fun.data=summary_CI90,position=jig,linewidth=0.2)+
+  stat_summary(fun.data=summary_CI50,position=jig,linewidth=0.6)+
+  coord_cartesian(ylim=c(0,NA))+
+  theme_classic()+
+  labs(color="Method")+ 
+  labs(x="",y=expression(""*S[MSY]*""))+ 
+  facet_grid(cols=vars(selectivity))+
+  theme(strip.background=element_blank(),
+        strip.text.x=element_text(size=10),
+        axis.line=element_line(linewidth=0.1),
+        axis.text=element_text(size=10),
+        axis.text.x=element_text(angle=90,vjust=0.5,hjust=1),
+        axis.title=element_text(size=10),
+        panel.border=element_rect(fill=NA,linewidth=1),
+        legend.key.size=unit(0.5,'cm'),
+        legend.title=element_text(size=10),
+        legend.text=element_text(size=8))
+ggsave("Figure3alt.pdf",p,width=6,height=4,units="in")  
 
 ##========================================================================##
 ##===============================================================## Figure 3
@@ -137,8 +201,8 @@ for(j in 1:nscen) {
   for(k in 1:niter) { 
     s_msy_est<-as.vector(unlist(S_msy.list[[j]][[k]]))
     if(length(s_msy_est)!=0) S_msy_scen[j,k,]<-s_msy_est
-  } ## end j-loop
-} ## end i-loop
+  }
+} 
 ##------------------------------------------------------------## time period
 ## evaluated after 50 years, i.e. after the historical period
 S_msy_hist<-S_msy_scen[,,which(review_years==nyh)]
@@ -156,94 +220,58 @@ for(i in 1:n_diffs){
   S_msy_diff_YPR[i,]<-100*(ypr_msys-ref_msys)/ref_msys
   S_msy_diff_DLM[i,]<-100*(dlm_msys-ref_msys)/ref_msys
 }
-##-----------------------------------------------## add scenario information
 use_all<-dplyr::select(scenarios,trends,selectivity,mgmt)
-S_msy_df<-data.frame(cbind(use_all,S_msy_hist))
-S_msy_df<-dplyr::filter(S_msy_df,trends!="ASL trends continued")
-S_msy_df<-dplyr::filter(S_msy_df,trends!="continuing trends")
-S_msy_df$trends[S_msy_df$trends=="ASL trends stabilized"]<-"age-sex-length trends"
-use_ypr<-use_all[ypr_msy_ind,]
-S_msy_df_YPR<-data.frame(cbind(use_ypr,S_msy_diff_YPR))
-S_msy_df_YPR<-dplyr::filter(S_msy_df_YPR,trends!="ASL trends continued")
-S_msy_df_YPR<-dplyr::filter(S_msy_df_YPR,trends!="continuing trends")
-S_msy_df_YPR$trends[S_msy_df_YPR$trends=="ASL trends stabilized"]<-"age-sex-length trends"
-use_dlm<-use_all[dlm_msy_ind,]
-S_msy_df_DLM<-data.frame(cbind(use_dlm,S_msy_diff_DLM))
-S_msy_df_DLM<-dplyr::filter(S_msy_df_DLM,trends!="ASL trends continued")
-S_msy_df_DLM<-dplyr::filter(S_msy_df_DLM,trends!="continuing trends")
-S_msy_df_DLM$trends[S_msy_df_DLM$trends=="ASL trends stabilized"]<-"age-sex-length trends"
-n_diff<-dim(S_msy_df_DLM)[1]
+##-----------------------------------------------## add scenario information
+S_msy_df_YPR<-data.frame(cbind(use_all[ypr_msy_ind,],S_msy_diff_YPR)) %>% 
+  filter(trends!="continuing trends")
+S_msy_df_DLM<-data.frame(cbind(use_all[dlm_msy_ind,],S_msy_diff_DLM)) %>%
+  filter(trends!="continuing trends")
 ##--------------------------------------------------------## ordered factors
-s_levels<-c("6 inch gillnet", "unselective", "8.5 inch gillnet")
-S_msy_df$sel_ordered<-factor(S_msy_df$selectivity,levels=s_levels)
-S_msy_df_YPR$sel_ordered<-factor(S_msy_df_YPR$selectivity,levels=s_levels)
-S_msy_df_DLM$sel_ordered<-factor(S_msy_df_DLM$selectivity,levels=s_levels)
-S_msy_df<-dplyr::select(S_msy_df,-selectivity)
-S_msy_df_YPR<-dplyr::select(S_msy_df_YPR,-selectivity)
-S_msy_df_DLM<-dplyr::select(S_msy_df_DLM,-selectivity)
+S_msy_df_YPR$selectivity<-factor(
+  S_msy_df_YPR$selectivity,
+  levels=c("6 inch gillnet","unselective","8.5 inch gillnet"),
+  labels=c("small-mesh","unselective","large-mesh"))
+S_msy_df_DLM$selectivity<-factor(
+  S_msy_df_DLM$selectivity,
+  levels=c("6 inch gillnet","unselective","8.5 inch gillnet"),
+  labels=c("small-mesh","unselective","large-mesh"))
 ##-------------------------------------------## add which alternative method
-S_msy_df_YPR$method<-"YPR"
-S_msy_df_DLM$method<-"DLM"
 S_msy_diffs<-data.frame(rbind(S_msy_df_YPR,S_msy_df_DLM))
-S_msy_diffs<-dplyr::select(S_msy_diffs,-mgmt)
-
-##============================================================## select data
-plot_smsy<-S_msy_diffs %>% pivot_longer(!c(trends,sel_ordered,method), names_to="iteration", values_to="value") %>% data.frame()
+S_msy_diffs<-S_msy_diffs %>%
+  mutate(mgmt=case_when(
+    mgmt=="s_eq_goal" ~ "YPR",
+    mgmt=="smsy_dlm_goal" ~ "DLM"))
+##------------------------------------------------------------## long format
+plot_smsy<-S_msy_diffs %>% 
+  pivot_longer(!c(trends,selectivity,mgmt), names_to="iteration", values_to="value") %>% 
+  dplyr::select(-iteration) %>%
+  data.frame()
 plot_smsy<-plot_smsy[complete.cases(plot_smsy),] ## <1%
-plot_smsy<-dplyr::select(plot_smsy,-iteration)
-
-##================================================================## medians
-S_msy_scen<-dplyr::select(S_msy_diffs,sel_ordered,method,trends)
-S_msy_iter<-dplyr::select(S_msy_diffs,-sel_ordered,-method,-trends)
-S_msy_med<-apply(S_msy_iter,1,function(x) median(x,na.rm=T))
-S_msy_diff_med<-data.frame(cbind(S_msy_scen,median=S_msy_med))
-
-##===========================================================## get legend
-ymin<-min(S_msy_diff_med$median,na.rm=T)*1.1
-ymax<-max(S_msy_diff_med$median,na.rm=T)*1.1
-p<-S_msy_diff_med %>% 
-  filter(method %in% c("YPR","DLM")) %>%
-  ggplot(aes(x=fct_inorder(trends),y=median,col=fct_inorder(method)))+
-  scale_colour_manual(values=colors)+
-  geom_point(size=2.5) + 
-  theme_classic()+
-  labs(color="Method")+
-  theme(legend.key.size=unit(0.5,'cm'),
-        legend.title=element_text(size=10),
-        legend.text=element_text(size=8),
-        legend.position=c(0.5,0.65))
-
-lgnd<-get_legend(p,position=NULL)
-as_ggplot(lgnd)
-
-##=========================================================## plot quantiles
+##------------------------------------------------------------------## plot
 jig<-position_dodge(width=0.5)
-cols<-rep(colors,n_diff)
-ymin<-quantile(plot_smsy$value,probs=0.01,na.rm=T)
-ymax<-quantile(plot_smsy$value,probs=0.99,na.rm=T)
-p<-plot_smsy %>% ggplot(aes(x=fct_inorder(trends),y=value,fill=fct_inorder(method)))+
+p<-plot_smsy %>% 
+  ggplot(aes(x=fct_inorder(trends),y=value,color=fct_inorder(mgmt)))+
   geom_hline(yintercept=0,linetype="solid",linewidth=0.1)+ 
-  stat_summary(fun.data=summary_CI90,position=jig,linewidth=0.2,color=cols)+
-  stat_summary(fun.data=summary_CI50,position=jig,linewidth=0.6,color=cols)+
+  scale_color_manual(values=colors)+
+  stat_summary(fun.data=summary_CI90,position=jig,linewidth=0.2)+
+  stat_summary(fun.data=summary_CI50,position=jig,linewidth=0.6)+
   scale_y_continuous(breaks=seq(-100,150,25))+
   coord_cartesian(ylim=c(-55,80))+
   theme_classic()+
-  labs(fill="Method")+ 
+  labs(color="Method")+ 
   labs(x="",y=expression("Difference in "*S[MSY]*" (%)"))+ 
+  facet_grid(cols=vars(selectivity))+
   theme(strip.background=element_blank(),
+        strip.text.x=element_text(size=10),
         axis.line=element_line(linewidth=0.1),
         axis.text=element_text(size=10),
         axis.text.x=element_text(angle=90,vjust=0.5,hjust=1),
         axis.title=element_text(size=10),
         panel.border=element_rect(fill=NA,linewidth=1),
-        legend.position="none")
-col.labs<-c("large-mesh","unselective","small-mesh")
-names(col.labs)<-c("8.5 inch gillnet","unselective","6 inch gillnet")
-g<-p+
-  facet_grid(cols=vars(sel_ordered),labeller=labeller(sel_ordered=col.labs))+
-  theme(strip.text.x=element_text(size=10))
-g<-cowplot::plot_grid(g,lgnd,ncol=2,rel_widths=c(0.85,0.15)) ## add legend
-ggsave("Figure3.pdf",g,width=6,height=4,units="in")  
+        legend.key.size=unit(0.5,'cm'),
+        legend.title=element_text(size=10),
+        legend.text=element_text(size=8))
+ggsave("Figure3.pdf",p,width=6,height=4,units="in")  
 
 ##========================================================================##
 ##===============================================================## Figure 4
@@ -263,122 +291,103 @@ dnames<-list(scen_names,iter_names)
 myarray<-array(dim=c(nscen,niter),dimnames=dnames)
 ##==============================================## performance last 50 years
 year_index<-(nyh+1):ny_obs ## most recent years after historical period
-##--------------------------------------------------------## for each method
-sum_log_harv<-cv_harv<-av_harv<-av_log_harv<-p_no_harv<-myarray ## harvest 
-sum_log_esc<-cv_esc<-av_esc<-av_log_esc<-myarray ## escapement 
-sum_log_ret<-cv_ret<-av_ret<-av_log_ret<-myarray ## total return 
-p_below_thresh<-p_above_thresh<-myarray ## conservation threshold
-thresh<-0.5 ## proportion of maximum recruitment at equilibrium
+##----------------------------------------------------------------## metrics
+av_harv<-av_ret<-av_esc<-p_over_Rmax50<-p_over_Seq50<-myarray 
 ##------------------------------------------## loop scenarios and iterations
 for(j in 1:nscen) {
-  for(k in 1:niter) { 
-    ##---------------------------------------------------------## escapement
-    esc_jk<-data.frame(obs.list[[j]][[k]])$obsEsc[year_index] ## observed 
-    if(is.null(esc_jk)) { next } else { 
-      sum_log_esc[j,k]<-sum(log(esc_jk+0.0001))
-      cv_esc[j,k]<-1/(sd(esc_jk,na.rm=T)/mean(esc_jk,na.rm=T)) ## 1/CV
+  for(k in 1:niter) {
+    ## escapement
+    esc_jk<-data.frame(obs.list[[j]][[k]])$obsEsc[year_index]  
+    if(is.null(esc_jk)) { next } else {
+      ## long-term average escapement
       av_esc[j,k]<-mean(esc_jk,na.rm=T)
-      av_log_esc[j,k]<-mean(log(esc_jk),na.rm=T)
+      ## probability of escapement above 60% of S_zero
+      ricker_parms<-data.frame(sr_sim.list[[j]][[k]])
+      S_eq<-log(ricker_parms$alpha)/ricker_parms$beta
+      p_over_Seq50[j,k]<-length(which(esc_jk>0.5*S_eq))/length(esc_jk)
     }
-    ##----------------------------------------------------------## harvest
-    harv_jk<-data.frame(obs.list[[j]][[k]])$obsHarv[year_index] ## observed 
+    ## harvest
+    harv_jk<-data.frame(obs.list[[j]][[k]])$obsHarv[year_index]  
     if(is.null(harv_jk)) { next } else { 
-      sum_log_harv[j,k]<-sum(log(harv_jk+0.0001))
-      cv_harv[j,k]<-1/(sd(harv_jk,na.rm=T)/mean(harv_jk,na.rm=T)) ## 1/CV
+      ## long-term average harvest
       av_harv[j,k]<-mean(harv_jk,na.rm=T)
-      av_log_harv[j,k]<-mean(log(harv_jk),na.rm=T)
-      p_no_harv[j,k]<-length(which(harv_jk==0))/length(harv_jk)
     }
-    ##----------------------------------------------------------## return
-    ret_jk<-data.frame(obs.list[[j]][[k]])$obsRet[year_index] ## observed 
+    ## return
+    ret_jk<-data.frame(obs.list[[j]][[k]])$obsRet[year_index]  
     if(is.null(ret_jk)) { next } else { 
-      sum_log_ret[j,k]<-sum(log(ret_jk+0.0001))
-      cv_ret[j,k]<-1/(sd(ret_jk,na.rm=T)/mean(ret_jk,na.rm=T)) ## 1/CV
+      ## long-term average return
       av_ret[j,k]<-mean(ret_jk,na.rm=T)
-      av_log_ret[j,k]<-mean(log(ret_jk),na.rm=T)
-      ## maximum recruitment given Ricker parameters
-      ricker_parms<-data.frame(sr_sim.list[[j]][[k]]) 
-      max_rec<-(ricker_parms$alpha/ricker_parms$beta)*exp(-1) 
       ## probability above/below threshold
-      p_below_jk<-length(which(ret_jk<max_rec*thresh))/length(ret_jk)
-      p_below_thresh[j,k]<-p_below_jk 
-      p_above_jk<-length(which(ret_jk>max_rec*thresh))/length(ret_jk)
-      p_above_thresh[j,k]<-1-p_below_jk
+      ricker_parms<-data.frame(sr_sim.list[[j]][[k]])
+      R_max<-(ricker_parms$alpha/ricker_parms$beta)*exp(-1)
+      p_over_Rmax50[j,k]<-length(which(ret_jk>R_max*0.5))/length(ret_jk)
     }
   } ## end k-loop
 } ## end j-loop
-p_below_thresh[is.na(p_below_thresh)]<-0
-
-##===========================================================## plot medians
+##--------------------------------------------------------------## scenarios
 df<-dplyr::select(scenarios,trends,selectivity,mgmt)
-##---------------------------------------------------------------## 'method'
-df$method<-"TRM"
-df$method[grepl("eq",df$mgmt)]<-"YPR"
-df$method[grepl("dlm",df$mgmt)]<-"DLM"
+##----------------------------------------------------------------## rename
+df<-df %>%
+  mutate(mgmt=case_when(
+    mgmt=="smsy_goal" ~ "TRM",
+    mgmt=="s_eq_goal" ~ "YPR",
+    mgmt=="smsy_dlm_goal" ~ "DLM"))
 ##----------------------------------------------------## median all metrics
 df$av_harv<-apply(av_harv,1,function(x) median(x,prob=use_quant,na.rm=T))
 df$av_harv<-df$av_harv/1e3
-df$cv_harv<-apply(cv_harv,1,function(x) median(x,prob=use_quant,na.rm=T))
 df$av_ret<-apply(av_ret,1,function(x) median(x,prob=use_quant,na.rm=T))
 df$av_ret<-df$av_ret/1e3
-df$p_above_thresh<-apply(p_above_thresh,1,function(x) median(x,na.rm=T))
-##----------------------------------------------------------## metric labels
-labs<-c("Mean harvest\n(thousands)","Harvest stability\n(1/CV)","Mean return\n(thousands)","Probability\nabove threshold") #, "P no harvest")
-n_metrics<-length(labs)
-
-##==========================================================## long format
-dfp<-df %>% pivot_longer(!c(trends,selectivity,mgmt,method), names_to="metric", values_to="median") %>% data.frame()
-##-----------------------------------------------## add labels for metrics
-metrics<-data.frame(name=colnames(df)[-c(1:4)])
-metrics$label<-labs
-for(i in 1:dim(dfp)[1]) {
-dfp$metric_label[i]<-metrics$label[dfp$metric[i]==metrics$name]
-}
+df$p_over_Rmax50<-apply(p_over_Rmax50,1,function(x) median(x,na.rm=T))
+df$p_over_Seq50<-apply(p_over_Seq50,1,function(x) median(x,na.rm=T))
+##-----------------------------------------------------------## long format
+dfp<-df %>% 
+  pivot_longer(!c(trends,selectivity,mgmt),names_to="metric",values_to="median") %>% 
+  data.frame()
+##------------------------------------------------## add labels for metrics
+dfp<-dfp %>%
+  mutate(metric_label=case_when(
+    metric=="av_harv" ~ "Mean harvest\n(thousands)",
+    metric=="av_ret" ~ "Mean return\n(thousands)",
+    metric=="p_over_Rmax50" ~ "Probability\nabove 50% Rmax",
+    metric=="p_over_Seq50" ~ "Probability\nabove 50% S0"))
 ##----------------------------------------------------------## select trends
 dfp<-dplyr::filter(dfp,trends!="age-length trends")
 dfp$trends<-as.factor(as.character(dfp$trends))
-##-------------------------------------------------------## ordered factors
-sel_levels<-c("6 inch gillnet", "unselective", "8.5 inch gillnet")
-sel_labels<-c("small-mesh", "unselective", "large-mesh")
-dfp$sel_ordered<-factor(dfp$selectivity,levels=sel_levels,labels=sel_labels)
-
-##=================================================## medians by target type
+##--------------------------------------------------------## ordered factors
+dfp$selectivity<-factor(
+  dfp$selectivity,
+  levels=c("6 inch gillnet","unselective","8.5 inch gillnet"),
+  labels=c("small-mesh","unselective","large-mesh"))
+##-----------------------------------------------------------------## plot
 p<-dfp %>% 
-  filter(metric!="cv_harv") %>%
-  ggplot(aes(x=fct_inorder(trends),y=median,col=fct_inorder(method),group=method)) +
+  ggplot(aes(x=fct_inorder(trends),y=median,col=fct_inorder(mgmt),group=mgmt)) +
   geom_line(lwd=0.5) +
   geom_point(shape=1,size=2.5,fill=NA,color="black") +
   geom_point(size=2.2) + 
   scale_colour_manual(values=c("darkgray",colors))+
-  scale_y_continuous(expand=c(0.08,0.08)) +
+  scale_y_continuous(expand=c(0.07,0.07),limits=c(0,NA)) +
   theme_classic() +
   labs(x="",y="") + 
   labs(color="Method")+
   theme(strip.background=element_blank(),
+        strip.text.x=element_text(size=10),
+        strip.text.y=element_text(size=10),
         axis.line=element_line(linewidth=0.1),
         axis.text=element_text(size=10),
         axis.text.x=element_text(angle=90,vjust=0.5,hjust=1),
         axis.title=element_text(size=12),
-        panel.border=element_rect(fill=NA,size=1),
+        panel.border=element_rect(fill=NA,linewidth=1),
         legend.key.size=unit(0.5,'cm'),
         legend.title=element_text(size=10),
-        legend.text=element_text(size=8)
-  )
-g<-p+
-  facet_grid(rows=vars(metric_label),cols=vars(sel_ordered),scales="free_y",switch="y")+
-  theme(strip.text.x=element_text(size=9),strip.text.y=element_text(size=9))+
-  theme(strip.placement="outside")
-ggsave("Figure4.pdf",g,width=5.2,height=5.5,units="in")
+        legend.text=element_text(size=8))
+g<-p+facet_grid(rows=vars(metric_label),cols=vars(selectivity),scales="free_y",switch="y")+theme(strip.placement="outside")
+ggsave("Figure4.pdf",g,width=5.5,height=7,units="in")
 
 ##========================================================================##
 ##===============================================================## Figure 5
 ##========================================================================##
 ## plot median percent difference in return compared to time-invariant model
-
-##=================================================## ratios and differences
-av_harv_diff<-cv_harv_diff<-cv_harv_ratio<-av_log_harv_diff<-myarray
-av_esc_diff<-av_log_esc_diff<-myarray
-av_ret_diff<-av_log_ret_diff<-p_above_thresh_ratio<-p_no_harv_ratio<-myarray
+av_ret_diff<-av_esc_diff<-myarray
 ##-----------------------------------------------------------## get indices
 ref_msy_ind<-which(grepl("smsy_goal",scenario_names,fixed=T)) 
 ypr_msy_ind<-which(grepl("s_eq_goal",scenario_names,fixed=T)) 
@@ -389,60 +398,50 @@ for(j in 1:nscen) {
     if(j %in% ref_msy_ind) j_ref<-j
     if(j %in% ypr_msy_ind) j_ref<-j-4
     if(j %in% dlm_msy_ind) j_ref<-j-8
-    cv_harv_diff[j,k]<-(cv_harv[j,k]-cv_harv[j_ref,k])*100/cv_harv[j_ref,k]
-    cv_harv_ratio[j,k]<-cv_harv[j,k]/cv_harv[j_ref,k]
-    av_harv_diff[j,k]<-(av_harv[j,k]-av_harv[j_ref,k])*100/av_harv[j_ref,k]
-    av_log_harv_diff[j,k]<-(av_log_harv[j,k]-av_log_harv[j_ref,k])
     av_esc_diff[j,k]<-(av_esc[j,k]-av_esc[j_ref,k])*100/av_esc[j_ref,k]
-    av_log_esc_diff[j,k]<-(av_log_esc[j,k]-av_log_esc[j_ref,k])
     av_ret_diff[j,k]<-(av_ret[j,k]-av_ret[j_ref,k])*100/av_ret[j_ref,k]
-    av_log_ret_diff[j,k]<-(av_log_ret[j,k]-av_log_ret[j_ref,k])
-    p_above_thresh_ratio[j,k]<-p_above_thresh[j,k]/p_above_thresh[j_ref,k]
-    p_no_harv_ratio[j,k]<-p_no_harv[j,k]/p_no_harv[j_ref,k]
-  } ## end k-loop
-} ## end j-loop
-
-##=======================================================## plot differences
+  } 
+} 
+##--------------------------------------------------------------## scenarios
 df_diff<-dplyr::select(scenarios,trends,selectivity,mgmt)
-##---------------------------------------------------------------## 'method'
-df_diff$method<-"TRM"
-df_diff$method[grepl("eq",df_diff$mgmt)]<-"YPR"
-df_diff$method[grepl("dlm",df_diff$mgmt)]<-"DLM"
-##----------------------------------------------------## median all metrics
-df_diff$av_harv<-apply(av_harv_diff,1,function(x) median(x,na.rm=T))
+##----------------------------------------------------------------## rename
+df_diff<-df_diff %>%
+  mutate(mgmt=case_when(
+    mgmt=="smsy_goal" ~ "TRM",
+    mgmt=="s_eq_goal" ~ "YPR",
+    mgmt=="smsy_dlm_goal" ~ "DLM"))
+##---------------------------------------------------------------## medians
 df_diff$av_esc<-apply(av_esc_diff,1,function(x) median(x,na.rm=T))
 df_diff$av_ret<-apply(av_ret_diff,1,function(x) median(x,na.rm=T))
-df_diff$p_harv_above_ref<-apply(av_harv_diff,1,function(x) length(x[which(x>0)])/length(x))
-df_diff$p_esc_above_ref<-apply(av_esc_diff,1,function(x) length(x[which(x>0)])/length(x))
-df_diff$p_ret_above_ref<-apply(av_ret_diff,1,function(x) length(x[which(x>0)])/length(x))
-##----------------------------------------------------------## metric labels
-labs<-c("Mean harvest","Mean escapement","Mean return","P(harv>harv_ref)","P(esc>esc_ref)","P(ret>ret_ref)")
-
-##==========================================================## long format
-df_diff_plot<-df_diff %>% pivot_longer(!c(trends,selectivity,mgmt,method), names_to="metric", values_to="median") %>% data.frame()
+##-----------------------------------------------------------## long format
+df_diff_plot<-df_diff %>% 
+  pivot_longer(!c(trends,selectivity,mgmt),names_to="metric",values_to="median") %>% 
+  data.frame()
 ##-----------------------------------------------## add labels for metrics
-metrics<-data.frame(name=colnames(df_diff)[-c(1:4)])
-metrics$label<-labs
-for(l in 1:dim(df_diff_plot)[1]) { df_diff_plot$metric_label[l]<-metrics$label[df_diff_plot$metric[l]==metrics$name] }
-##-------------------------------------------------------## ordered factors
-sel_levels<-c("6 inch gillnet", "unselective", "8.5 inch gillnet")
-sel_labels<-c("small-mesh","unselective","large-mesh")
-df_diff_plot$sel_ordered<-factor(df_diff_plot$selectivity,levels=sel_levels, labels=sel_labels)
-##-------------------------------------------------------## drop references
-df_diff_plot<-df_diff_plot[df_diff_plot$mgmt!="smsy_goal",]
-df_diff_plot<-df_diff_plot[df_diff_plot$mgmt!="umsy_goal",]
+df_diff_plot<-df_diff_plot %>%
+  mutate(metric_label=case_when(
+    metric=="av_esc" ~ "Mean escapement\n(thousands)",
+    metric=="av_ret" ~ "Mean return\n(thousands)"))
 ##----------------------------------------------------------## select trends
 df_diff_plot<-dplyr::filter(df_diff_plot,trends!="age-length trends")
 df_diff_plot$trends<-as.factor(as.character(df_diff_plot$trends))
+##--------------------------------------------------------## ordered factors
+df_diff_plot$selectivity<-factor(
+  df_diff_plot$selectivity,
+  levels=c("6 inch gillnet","unselective","8.5 inch gillnet"),
+  labels=c("small-mesh","unselective","large-mesh"))
+##-------------------------------------------------------## drop references
+df_diff_plot<-df_diff_plot[df_diff_plot$mgmt!="TRM",]
 ##-----------------------------------------## split ratios and % differences
 df_diff_plot1<-df_diff_plot[df_diff_plot$metric %in% c("av_harv","av_esc"),]
 df_diff_plot2<-df_diff_plot[df_diff_plot$metric %in% c("av_ret"),]
 df_diff_plot3<-df_diff_plot[df_diff_plot$metric %in% c("p_ret_above_ref"),]
 
 ##============================================================## plot return
-p<-df_diff_plot2 %>%
-  ggplot(aes(x=fct_inorder(trends),y=median,color=fct_inorder(method),group=method)) +
-  geom_hline(yintercept=0,linetype="solid",size=0.1)+ 
+p<-df_diff_plot %>%
+  filter(metric=="av_ret") %>%
+  ggplot(aes(x=fct_inorder(trends),y=median,color=fct_inorder(mgmt),group=mgmt)) +
+  geom_hline(yintercept=0,linetype="solid",linewidth=0.1)+ 
   geom_line(linewidth=0.6) +
   geom_point(size=2.5) + 
   geom_point(shape=1,size=3,fill=NA,color="black") +
@@ -451,7 +450,9 @@ p<-df_diff_plot2 %>%
   theme_classic() +
   labs(x="",y="Median difference in returns (%)") + 
   labs(color="Method")+
+  facet_grid(cols=vars(selectivity)) +
   theme(strip.background=element_blank(),
+        strip.text.x=element_text(size=10),
         axis.line=element_line(linewidth=0.1),
         axis.text=element_text(size=10),
         axis.text.x=element_text(angle=90,vjust=0.5,hjust=1),
@@ -460,25 +461,20 @@ p<-df_diff_plot2 %>%
         legend.key.size=unit(0.5,'cm'),
         legend.title=element_text(size=10),
         legend.text=element_text(size=8),
-        legend.background=element_blank()
-  )
-g<-p+facet_grid(cols=vars(sel_ordered)) +
-  theme(strip.text.x=element_text(size=10))
-ggsave("Figure5.pdf",g,width=6,height=4,units="in")
+        legend.background=element_blank())
+ggsave("Figure5.pdf",p,width=6,height=4,units="in")
 
 ##========================================================================##
 ##===============================================================## Figure 6
 ##========================================================================##
-## plot median percent difference from time-invariant model over time 
-
-##===========================================## performance trends over time
+## plot % difference from time-invariant model over time 
+##-------------------------------------------------------## trends over time
 year_index_list<-list()
 future_yrs<-seq(10,50,10)
 n_index<-length(future_yrs)
 ##-------------------------------------------------------------## cumulative
 for(i in 1:n_index) { year_index_list[[i]]<-(nyh+1):(nyh+i*10) }
-
-##==========================================## loop scenarios and iterations
+##------------------------------------------## loop scenarios and iterations
 av_harv_list<-av_ret_list<-av_esc_list<-list()
 av_harv_diff_list<-av_ret_diff_list<-av_esc_diff_list<-list()
 for(i in 1:n_index) { 
@@ -512,38 +508,41 @@ for(i in 1:n_index) {
   av_harv_diff_list[[i]]<-av_harv_diff
   av_esc_diff_list[[i]]<-av_esc_diff
   av_ret_diff_list[[i]]<-av_ret_diff
-} ## end i-loop over year indices
-
-##==============================================================## scenarios
+} 
+##--------------------------------------------------------------## scenarios
 df_diff_scen<-dplyr::select(scenarios,trends,selectivity,mgmt)
-##----------------------------------------------------## 'method'
-df_diff_scen$method<-"TRM"
-df_diff_scen$method[grepl("eq",df_diff_scen$mgmt)]<-"YPR"
-df_diff_scen$method[grepl("dlm",df_diff_scen$mgmt)]<-"DLM"
-
-##=================================================================## return
+##----------------------------------------------------------------## rename
+df_diff_scen<-df_diff_scen %>%
+  mutate(mgmt=case_when(
+    mgmt=="smsy_goal" ~ "TRM",
+    mgmt=="s_eq_goal" ~ "YPR",
+    mgmt=="smsy_dlm_goal" ~ "DLM"))
+##----------------------------------------------------------------## return
 df_av_ret<-array(dim=c(nscen,n_index))
-for(i in 1:n_index) {df_av_ret[,i]<-apply(av_ret_diff_list[[i]],1, function(x) median(x,na.rm=T)) }
+for(i in 1:n_index) {
+  df_av_ret[,i]<-apply(av_ret_diff_list[[i]],1,function(x)median(x,na.rm=T))
+  }
 colnames(df_av_ret)<-future_yrs
 ##-------------------------------------------------## combine with scenarios
-df_av_ret<-data.frame(cbind(df_diff_scen,df_av_ret))
-df_av_ret<-dplyr::filter(df_av_ret,method!="TRM")
-##----------------------------------------------------------## select trends
-df_av_ret<-dplyr::filter(df_av_ret,trends=="ASL trends stabilized")
-df_av_ret<-dplyr::select(df_av_ret,-trends,-mgmt)
+df_av_ret<-data.frame(cbind(df_diff_scen,df_av_ret)) %>% 
+  filter(mgmt!="TRM") %>%
+  filter(trends=="ASL trends stabilized") %>%
+  select(-trends)
 ##-----------------------------------------------------------## pivot longer
-df_av_ret_plot<-df_av_ret %>% pivot_longer(!c(selectivity,method), names_to="period", values_to="median") %>% data.frame() 
+df_av_ret_plot<-df_av_ret %>% 
+  pivot_longer(!c(selectivity,mgmt),names_to="period",values_to="median")
 df_av_ret_plot$period<-as.numeric(gsub("X","",df_av_ret_plot$period))
-##-------------------------------------------------------## ordered factors
-df_av_ret_plot$sel_ordered<-factor(df_av_ret_plot$selectivity,levels=c("6 inch gillnet", "unselective", "8.5 inch gillnet"),labels=c("small-mesh","unselective","large-mesh"))
+##--------------------------------------------------------## ordered factors
+df_av_ret_plot$selectivity<-factor(
+  df_av_ret_plot$selectivity,
+  levels=c("6 inch gillnet","unselective","8.5 inch gillnet"),
+  labels=c("small-mesh","unselective","large-mesh"))
 ##-----------------------------------------------------------## metric label
 df_av_ret_plot$metric_label<-"Mean return"
-
-##=================================================================## return
-df_plot<-df_av_ret_plot
-p<-df_plot %>% 
-  ggplot(aes(x=period,y=median,color=fct_inorder(method)))+
-  geom_hline(yintercept=0,linetype="solid",size=0.1)+ 
+##------------------------------------------------------------------## plot
+p<-df_av_ret_plot %>% 
+  ggplot(aes(x=period,y=median,color=fct_inorder(mgmt)))+
+  geom_hline(yintercept=0,linetype="solid",linewidth=0.1)+ 
   geom_line(linewidth=0.5) +
   geom_point(shape=1,size=2.5,fill=NA,color="black") +
   geom_point(size=2.2) + 
@@ -553,8 +552,11 @@ p<-df_plot %>%
   theme_classic() +
   labs(x="Year",y="Median difference in returns (%)") + 
   labs(color="Method")+
+  facet_grid(cols=vars(selectivity),rows=vars(metric_label),switch="y")+
   theme(strip.background=element_blank(),
-        axis.line=element_line(size=0.1),
+        strip.text.x=element_text(size=10),
+        strip.text.y=element_blank(),
+        axis.line=element_line(linewidth=0.1),
         axis.text=element_text(size=10),
         axis.text.x=element_text(angle=90,vjust=0.5,hjust=1),
         axis.title=element_text(size=12),
@@ -562,46 +564,43 @@ p<-df_plot %>%
         legend.title=element_text(size=10),
         legend.text=element_text(size=8),
         legend.background=element_blank(),
-        panel.border=element_rect(fill=NA,size=1)
-  )
-g<-p+
-  facet_grid(cols=vars(sel_ordered),rows=vars(metric_label),switch="y")+
-  theme(strip.text.x=element_text(size=10),strip.text.y=element_blank())
-ggsave("Figure6.pdf",g,width=6.5,height=3,units="in")
+        panel.border=element_rect(fill=NA,size=1))
+ggsave("Figure6.pdf",p,width=6.5,height=3,units="in")
+
+
+
 
 ##========================================================================##
 ##===============================================================## Figure 7
 ##========================================================================##
-## harvest vs escapement % difference to time-invariant model all iterations 
+## harvest vs escapement % difference to time-invariant model all iterations
 df_scen<-dplyr::select(scenarios,trends,selectivity,mgmt)
-df_harv<-data.frame(cbind(df_scen,av_harv_diff))
-df_harv_long<-df_harv %>% pivot_longer(!c(selectivity,mgmt,trends),names_to="iter",values_to="harvest") %>% data.frame()
-df_harv_long<-dplyr::select(df_harv_long,-iter)
-df_esc<-data.frame(cbind(df_scen,av_esc_diff))
-df_esc_long<-df_esc %>% pivot_longer(!c(selectivity,mgmt,trends),names_to="iter",values_to="escapement") %>% data.frame()
-df_esc_long<-dplyr::select(df_esc_long,-iter)
+df_harv_long<-data.frame(cbind(df_scen,av_harv_diff)) %>% 
+  pivot_longer(!c(selectivity,mgmt,trends),names_to="iter",values_to="harvest") %>% 
+  dplyr::select(-iter)
+df_esc_long<-data.frame(cbind(df_scen,av_esc_diff)) %>% 
+  pivot_longer(!c(selectivity,mgmt,trends),names_to="iter",values_to="escapement") %>% 
+  dplyr::select(-iter)
 df_all<-data.frame(cbind(df_harv_long,escapement=df_esc_long$escapement))
-##---------------------------------------------------------------## 'method'
-df_all$method<-"TRM"
-df_all$method[grepl("eq",df_all$mgmt)]<-"YPR" #"Yield-Per-Recruit"
-df_all$method[grepl("dlm",df_all$mgmt)]<-"DLM" #"Dynamic Linear Model"
-df_all<-dplyr::filter(df_all,method!="TRM")
-df_all$method<-as.factor(as.character(df_all$method))
-##-------------------------------------------------------## ordered factors
-sel_levels<-c("6 inch gillnet", "unselective", "8.5 inch gillnet")
-sel_labels<-c("small-mesh","unselective","large-mesh")
-df_all$sel_ordered<-factor(df_all$selectivity,levels=sel_levels,labels=sel_labels)
-# df_all<-dplyr::filter(df_all,sel_ordered!="unselective")
-##----------------------------------------------------------## select trends
-trends_used<-trend_names[c(4)]
-df_all<-dplyr::filter(df_all,trends %in% trends_used)
-##---------------------------------------------------------## select columns
-df_all<-dplyr::select(df_all,-mgmt,-selectivity)
+##---------------------------------------------------------------## rename
+df_all<-df_all %>%
+  mutate(mgmt=case_when(
+    mgmt=="smsy_goal" ~ "TRM",
+    mgmt=="s_eq_goal" ~ "YPR",
+    mgmt=="smsy_dlm_goal" ~ "DLM")) %>%
+  filter(mgmt!="TRM")
+##--------------------------------------------------------## ordered factors
+df_all$selectivity<-factor(
+  df_all$selectivity,
+  levels=c("6 inch gillnet","unselective","8.5 inch gillnet"),
+  labels=c("small-mesh","unselective","large-mesh"))
 
 ##=================================================## plot including density
 p<-df_all %>% 
-  dplyr::filter(sel_ordered=="large-mesh") %>% ## large-mesh selectivity
-  ggplot(aes(x=harvest,y=escapement,col=fct_inorder(method),group=fct_inorder(method)))+
+  filter(selectivity=="large-mesh") %>% ## large-mesh selectivity
+  filter(trends=="ASL trends continued") %>% ## continued trends
+  dplyr::select(-c(selectivity,trends)) %>%
+  ggplot(aes(x=harvest,y=escapement,col=fct_inorder(mgmt),group=fct_inorder(mgmt)))+
   geom_hline(yintercept=0,linetype="solid",color="black",size=0.1)+
   geom_vline(xintercept=0,linetype="solid",color="black",size=0.1)+
   geom_point(size=1,shape=16,alpha=0.5)+
@@ -668,7 +667,9 @@ sum_log_harv<-cv_harv<-av_harv<-av_log_harv<-p_no_harv<-myarray ## harvest
 sum_log_esc<-cv_esc<-av_esc<-av_log_esc<-myarray ## escapement 
 sum_log_ret<-cv_ret<-av_ret<-av_log_ret<-myarray ## total return 
 p_below_thresh<-p_above_thresh<-myarray ## conservation threshold
-thresh<-0.5 ## proportion of maximum recruitment at equilibrium
+p_over_Seq50<-p_above_QET<-myarray ## escapement conservation metrics
+thresh<-0.5 ## proportion of maximum recruitment
+QET<-50 ## quasi-extinction threshold
 ##------------------------------------------## loop scenarios and iterations
 nbc<-nscen_base_cases ## factorMSY==1 cases
 for(j in 1:nscen) {
@@ -676,10 +677,17 @@ for(j in 1:nscen) {
     ##---------------------------------------------------------## escapement
     esc_jk<-data.frame(obs.list[[nbc+j]][[k]])$obsEsc[year_index]  
     if(is.null(esc_jk)) { next } else { 
-      sum_log_esc[j,k]<-sum(log(esc_jk+0.0001))
       cv_esc[j,k]<-1/(sd(esc_jk,na.rm=T)/mean(esc_jk,na.rm=T)) ## 1/CV
       av_esc[j,k]<-mean(esc_jk,na.rm=T)
       av_log_esc[j,k]<-mean(log(esc_jk),na.rm=T)
+      ## probability above quasi extinction risk
+      p_above_QET[j,k]<-length(which(esc_jk>QET))/length(esc_jk)
+      ## probability of escapement above 60% of S_zero
+      ricker_parms<-data.frame(sr_sim.list[[j]][[k]])
+      if(is.null(ricker_parms$alpha)) { next } else { 
+        S_eq<-log(ricker_parms$alpha)/ricker_parms$beta
+        p_over_Seq50[j,k]<-length(which(esc_jk>0.5*S_eq))/length(esc_jk)
+      }
     }
     ##----------------------------------------------------------## harvest
     harv_jk<-data.frame(obs.list[[nbc+j]][[k]])$obsHarv[year_index]  
@@ -699,7 +707,9 @@ for(j in 1:nscen) {
       av_log_ret[j,k]<-mean(log(ret_jk),na.rm=T)
       ## maximum recruitment given Ricker parameters
       ricker_parms<-data.frame(sr_sim.list[[j]][[k]]) 
-      max_rec<-(ricker_parms$alpha/ricker_parms$beta)*exp(-1) ## Hilborn ~
+      if(is.null(ricker_parms$alpha)) { next } else { 
+        max_rec<-(ricker_parms$alpha/ricker_parms$beta)*exp(-1) 
+      }
       ## probability above/below threshold
       p_below_jk<-length(which(ret_jk<max_rec*thresh))/length(ret_jk)
       p_below_thresh[j,k]<-p_below_jk 
@@ -718,12 +728,12 @@ df$method[grepl("dlm",df$mgmt)]<-"DLM"
 ##----------------------------------------------------## median all metrics
 df$av_harv<-apply(av_harv,1,function(x) median(x,prob=use_quant,na.rm=T))
 df$av_harv<-df$av_harv/1e3
-df$cv_harv<-apply(cv_harv,1,function(x) median(x,prob=use_quant,na.rm=T))
 df$av_ret<-apply(av_ret,1,function(x) median(x,prob=use_quant,na.rm=T))
 df$av_ret<-df$av_ret/1e3
 df$p_above_thresh<-apply(p_above_thresh,1,function(x) median(x,na.rm=T))
+df$p_over_Seq50<-apply(p_over_Seq50,1,function(x) median(x,na.rm=T))
 ##----------------------------------------------------------## metric labels
-labs<-c("Mean harvest\n(thousands)","Harvest stability\n(1/CV)","Mean return\n(thousands)","Probability\nabove threshold")
+labs<-c("Mean harvest\n(thousands)","Mean return\n(thousands)","Probability\nabove 50% Rmax","Probability\nabove 50% S0")
 n_metrics<-length(labs)
 df_factorMSY<-df
 
@@ -744,11 +754,15 @@ for(i in 1:dim(dfp)[1]) {
 ##----------------------------------------------------------## select trends
 dfp<-dplyr::filter(dfp,trends!="age-length trends")
 dfp$trends<-as.factor(as.character(dfp$trends))
-dfp_factorMSY<-dfp
+
+##-------------------------------------------------------## rename factors
+dfp$factorMSY<-factor(dfp$factorMSY,
+                      levels=c("0.75","1.5"),
+                      labels=c("aggressive","precautionary"))
 
 ##=================================================## medians by target type
+dfp_factorMSY<-dfp
 p<-dfp_factorMSY %>% 
-  dplyr::filter(metric!="cv_harv") %>%
   ggplot(aes(x=fct_inorder(trends),y=median,color=fct_inorder(method),group=method)) +
   geom_line(lwd=0.5) +
   geom_point(shape=1,size=2.5,fill=NA,color="black") +
@@ -769,9 +783,9 @@ p<-dfp_factorMSY %>%
         legend.text=element_text(size=8)
   )
 g<-p+facet_grid(rows=vars(metric_label),cols=vars(factorMSY),scales="free_y", switch="y")+
-  theme(strip.text.x=element_text(size=9),strip.text.y=element_text(size=9))+
+  theme(strip.text.x=element_text(size=10),strip.text.y=element_text(size=10))+
   theme(strip.placement="outside")
-ggsave("Figure8.pdf",g,width=4.2,height=5.5,units="in")
+ggsave("Figure8.pdf",g,width=4.4,height=7,units="in")
 
 ##========================================================================##
 ##========================================================================##
