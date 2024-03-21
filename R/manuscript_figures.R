@@ -665,7 +665,7 @@ p<-dfp %>%
   geom_point(shape=1,size=2.5,fill=NA,color="black") +
   geom_point(size=2.2) + 
   scale_colour_manual(values=c("darkgray",colors))+
-  scale_y_continuous(expand=c(0.1,0.1)) +
+  scale_y_continuous(expand=c(0.07,0.07),limits=c(0,NA)) +
   theme_classic() +
   labs(x="",y="") + 
   labs(color="Method")+
@@ -685,7 +685,7 @@ g<-p+facet_grid(rows=vars(metric_label),cols=vars(factorMSY),scales="free_y", sw
 ggsave("Figure8.pdf",g,width=4.5,height=7,units="in")
 
 ##========================================================================##
-##===============================================================## Figure X
+##===============================================================## Figure 9
 ##========================================================================##
 ## plot median percent difference in return compared to time-invariant model
 myarray<-array(dim=c(nscen,niter),dimnames=dnames)
