@@ -212,11 +212,11 @@ p<-plot_smsy %>%
         legend.key.size=unit(0.5,'cm'),
         legend.title=element_text(size=10),
         legend.text=element_text(size=8))
-ggsave("Figure3.pdf",p,width=6,height=4,units="in")  
+# ggsave("Figure3.pdf",p,width=6,height=4,units="in")  
 
 
 ##========================================================================##
-##===================================================## alternative Figure 3
+##===========================================================## new Figure 3
 ##========================================================================##
 ## plot S_msy estimates for all models
 review_years<-seq((nyi+20),ny,goalfreq)
@@ -250,11 +250,12 @@ p<-plot_smsy_df %>%
   scale_color_manual(values=c("darkgray",colors))+
   stat_summary(fun.data=summary_CI90,position=jig,linewidth=0.2)+
   stat_summary(fun.data=summary_CI50,position=jig,linewidth=0.6)+
-  coord_cartesian(ylim=c(0,NA))+
+  # coord_cartesian(ylim=c(0,NA))+
   theme_classic()+
   labs(color="Method")+ 
   labs(x="",y=expression(""*S[MSY]*""))+ 
-  facet_grid(cols=vars(selectivity))+
+  facet_grid(cols=vars(selectivity),scales="free_y")+
+  # facet_wrap(vars(selectivity),ncol=n_select,scales="free_y")+
   theme(strip.background=element_blank(),
         strip.text.x=element_text(size=10),
         axis.line=element_line(linewidth=0.1),
@@ -265,7 +266,7 @@ p<-plot_smsy_df %>%
         legend.key.size=unit(0.5,'cm'),
         legend.title=element_text(size=10),
         legend.text=element_text(size=8))
-ggsave("Figure3alt.pdf",p,width=6,height=4,units="in")  
+ggsave("Figure3.pdf",p,width=6,height=4,units="in")  
 
 ##========================================================================##
 ##===============================================================## Figure 4
