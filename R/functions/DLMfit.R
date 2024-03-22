@@ -1,15 +1,10 @@
-##========================================================================##
-##                                                                        ##
-## Function for fitting DLMs with time-varying intercept/slope parameters ##
-##                                                                        ##
-##========================================================================##
+## Function to fit DLMs with time-varying intercept/slope parameters
 ## data: contains columns 'Esc' (escapement), 'Rec' (recruitment)
 ## var_alpha: if TRUE alpha estimated as time-varying parameter
 ## var_beta: if TRUE beta estimated as time-varying parameter
-##========================================================================##
 ## applied to a linearized Ricker with alpha/beta parameters
 DLMfit<-function(data,var_alpha,var_beta) {
-lnRS<-log(data$Rec/data$Esc) ## ln(recruits/spawner)
+lnRS<-log(data$Rec/data$Esc) 
 alpha_y<-beta_y<-NULL
 mod<-dlmModReg(data$Esc) ## specify a linear model
 npara<-3+sum(c(var_alpha,var_beta)) ## number of parameters
@@ -30,8 +25,7 @@ outsFilter<-dlmFilter(y=lnRS,mod=dlmMod) ## added Kalman filter
 outsSmooth<-dlmSmooth(outsFilter) ## added backward recursive smoothing
 alpha_y<-signif(outsSmooth$s[-1,1],4) ## alpha
 beta_y<-signif(outsSmooth$s[-1,2],5) ## beta
-AICc<-2*lls+2*npara+(2*npara*(npara+1)/(length(data$Rec)-npara-1)) ## AICc
+AICc<-2*lls+2*npara+(2*npara*(npara+1)/(length(data$Rec)-npara-1)) 
 output<-list(results=cbind(data,alpha_y,beta_y),AICc=AICc,sigma=sigma) 
 return(output) 
 } 
-##========================================================================##
