@@ -3,7 +3,8 @@
 ##                Plot simulation model results for MSE             ##
 ##                                                                  ##
 ##==================================================================##
-pkgs<-c("here","tidyverse","dplyr","scales","RColorBrewer","readxl","gsl","vioplot", "caroline","ggplot2","viridis","forcats","gridExtra","lemon","fmsb","MetBrewer","ggradar","showtext","DataCombine","ggridges","ggExtra","remotes","ggpubr","gsl")
+# pkgs<-c("here","tidyverse","dplyr","scales","RColorBrewer","readxl","gsl","vioplot", "caroline","ggplot2","viridis","forcats","gridExtra","lemon","fmsb","MetBrewer","ggradar","showtext","DataCombine","ggridges","ggExtra","remotes","ggpubr","gsl")
+pkgs<-c("here","tidyverse","scales","RColorBrewer","readxl","ggExtra")
 if(length(setdiff(pkgs,rownames(installed.packages())))>0) {install.packages(setdiff(pkgs,rownames(installed.packages())),dependencies=TRUE)}
 invisible(lapply(pkgs,library,character.only=T))
 
@@ -213,7 +214,6 @@ p<-plot_smsy %>%
         legend.title=element_text(size=10),
         legend.text=element_text(size=8))
 # ggsave("Figure3.pdf",p,width=6,height=4,units="in")  
-
 
 ##==================================================================##
 ##=====================================================## new Figure 3
@@ -584,11 +584,6 @@ factorMSY_names<-unique(scenarios$factorMSY)
 n_factors<-length(factorMSY_names)
 ##---------------------------## number of reconstructed observed years
 ny_obs<-dim(data.frame(obs.list[[1]][[1]]))[1]
-##--------------------------------------------------## new trend names
-trend_names_old<-trend_names
-trend_names<-c("no trends","age-length trends","ASL trends stabilized","ASL trends continued" )
-replace<-data.frame(from=trend_names_old,to=trend_names)
-scenarios<-FindReplace(scenarios,Var="trends",replaceData=replace, from="from",to="to",exact=FALSE)
 ##------------------------------------------------## array for results
 scen_names<-paste0("scen=",seq(nscen))
 iter_names<-paste0("iter=",seq(niter))
