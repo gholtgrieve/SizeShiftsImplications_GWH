@@ -442,12 +442,6 @@ beta.dlm<-mean(beta_dlm[(nrd-ndlm+1):nrd])
 Smsy_dlm<-round((1-lambert_W0(exp(1-log(alpha.dlm))))/beta.dlm)
 Umsy_dlm<-round((1-lambert_W0(exp(1-log(alpha.dlm)))),3)
 Smax_dlm<-1/beta.dlm
-##----------------------------------------------------## plot DLM fit
-# pdf(paste0("sim_plots/DLM_scen=",j,"_seed=",seednum,".pdf"),width=4,height=6)
-# par(mar=c(3.5,3.5,0.5,0.5),mgp=c(2,0.5,0),mfcol=c(2,1)) 
-# plot(alpha_dlm,type="l",ylim=c(0,10))
-# plot(beta_dlm,type="l",ylim=c(0,4e-4))
-# dev.off()
 }
 
 ########################################## yield-per-recruit analysis
@@ -676,18 +670,6 @@ change[i,h]<-round((latemean-earlymean)*100/earlymean,2)
 ##========================================================## plot data
 ##==================================================================##
 ##==================================================================##
-# if(plot){
-# pdf(paste0("sim_plots/SR_scen=",j,"_seed=",seednum,".pdf"),width=4,height=4)
-# plot(NA,NA,xlab="Spawners",ylab="Recruits",xlim=c(0,max(data$Esc)*1.2), ylim=c(0,max(data$Rec)*1.2))
-# abline(0,1,col="gray")
-# lines(esc,ricker_plot(S=seq(0,max(data$Esc),length=1e3),a=alpha_sim,b=beta_sim),lwd=2)
-# points(data$Esc,data$Rec,pch=16,cex=0.8,col=1)
-# dev.off()
-# }
-
-##==================================================================##
-##========================================================## all plots
-##==================================================================##
 if(plot){
 pdf(paste0("sim_plots/Plots_scen=",j,"_seed=",seednum,".pdf"),width=10,height=8.5)
 layout(matrix(1:20,ncol=5,nrow=4,byrow=T))
@@ -856,7 +838,6 @@ points(dataObs$obsEsc,dataObs$recRec,cex=0.8)
 ##========================================================## save plot
 mtext(ptitle,side=3,line=0.5,cex=1,font=2,outer=T)
 dev.off()
-
 } ## end if(plot) statement
 
 ##==================================================================##
