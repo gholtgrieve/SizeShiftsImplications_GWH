@@ -4,7 +4,7 @@
 ##                                                                        ##
 ##========================================================================##
 ##===============================================================## packages
-pkgs<-c("here","readxl","openxlsx","dplyr","gtools","faraway","RColorBrewer","gsl","nlme","matrixcalc","data.table","dlm","progress")
+pkgs<-c("here","readxl","openxlsx","dplyr","gtools","faraway","gsl","nlme","matrixcalc","data.table","dlm","progress")
 if(length(setdiff(pkgs,rownames(installed.packages())))>0) { install.packages(setdiff(pkgs,rownames(installed.packages())), dependencies=TRUE) }
 invisible(lapply(pkgs,library,character.only=T))
 ##==============================================================## functions
@@ -14,7 +14,7 @@ invisible(sapply(FUN=source,paste0(here::here(),"/R/functions/",fxn)))
 ##==============================================================## scenarios
 scen<-data.frame(read_excel(paste0(here::here(),"/R/scenarios.xlsx"))) 
 nscen<-dim(scen)[1] ## number of scenarios
-niter<-3 ## iterations per scenario
+niter<-1000 ## iterations per scenario
 print(paste0("time estimate: ",round((niter*nscen/20)/60,2)," hours"))
 ##===========================================================## output lists
 output.list<-replicate(nscen,list(replicate(niter,list())))
@@ -22,12 +22,11 @@ para.list<-sr_sim.list<-fec.list<-egg.list<-S_msy.list<-data.list<-obs.list<-out
 ##==========================================## loop scenarios and iterations
 pb<-progress_bar$new(total=niter*nscen)
 # seed.list<-sample(seq(1e6),niter*nscen,replace=F) ## random seed
-seed.list<-seq(niter*nscen) ## reproducible seed for comparing test runs
+seed.list<-seq(niter*nscen) ## reproducible seed
 start.time<-Sys.time()
 for(j in 1:nscen) { 
   for(k in 1:niter) {
     seednum<-seed.list[k] ## same iteration seeds for each scenario
-    # print(paste0("scenario=",j," iteration=",k," seed=",seednum))
     parms.list<-source(paste0(here::here(),"/R/functions/parameters.R"))$value
     mod.out<-try(run_model(parms.list=parms.list))
     if(class(mod.out)!="try-error") {
