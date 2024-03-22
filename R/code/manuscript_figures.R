@@ -673,75 +673,6 @@ p<-dfp %>%
   theme(strip.background=element_blank(),
         strip.text.x=element_text(size=10),
         strip.text.y=element_text(size=10),
-        axis.line=element_line(size=0.1),
-        axis.text=element_text(size=10),
-        axis.text.x=element_text(angle=90,vjust=0.5,hjust=1),
-        axis.title=element_text(size=12),
-        panel.border=element_rect(fill=NA,size=1),
-        legend.key.size=unit(0.5,'cm'),
-        legend.title=element_text(size=10),
-        legend.text=element_text(size=8)
-  )
-g<-p+facet_grid(rows=vars(metric_label),cols=vars(factorMSY),scales="free_y", switch="y")+theme(strip.placement="outside")
-ggsave("Figure8.pdf",g,width=4.5,height=7,units="in")
-
-##==================================================================##
-##=========================================================## Figure 9
-##==================================================================##
-## plot median percent difference in return compared to time-invariant model
-myarray<-array(dim=c(nscen,niter),dimnames=dnames)
-av_ret_diff<-av_esc_diff<-myarray
-##-----------------------------------------------------## get indices
-ref_msy_ind<-which(grepl("TRM",scenario_names,fixed=T)) 
-ypr_msy_ind<-which(grepl("YPR",scenario_names,fixed=T)) 
-dlm_msy_ind<-which(grepl("DLM",scenario_names,fixed=T))  
-##---------------------------------------------## compute differences
-for(j in 1:nscen) {
-  for(k in 1:niter) {
-    if(j %in% ref_msy_ind) j_ref<-j
-    if(j %in% ypr_msy_ind) j_ref<-j-4
-    if(j %in% dlm_msy_ind) j_ref<-j-8
-    av_esc_diff[j,k]<-(av_esc[j,k]-av_esc[j_ref,k])*100/av_esc[j_ref,k]
-    av_ret_diff[j,k]<-(av_ret[j,k]-av_ret[j_ref,k])*100/av_ret[j_ref,k]
-  } 
-} 
-##--------------------------------------------------------## scenarios
-df_diff<-dplyr::select(scenarios,trends,factorMSY,selectivity,mgmt)
-##---------------------------------------------------------## medians
-df_diff$av_esc<-apply(av_esc_diff,1,function(x) median(x,na.rm=T))
-df_diff$av_ret<-apply(av_ret_diff,1,function(x) median(x,na.rm=T))
-##---------------------------------------------------------## filters
-df_diff<-df_diff %>% 
-  filter(selectivity=="unselective") %>% ## not needed for new scenarios
-  dplyr::select(-selectivity) %>% 
-  filter(mgmt!="TRM") %>%
-  filter(trends!="age-length trends")
-##-----------------------------------------------------## long format
-df_diff_plot<-df_diff %>% 
-  pivot_longer(!c(trends,factorMSY,mgmt),names_to="metric",values_to="median") %>% 
-  data.frame()
-##-----------------------------------------## add labels for metrics
-df_diff_plot<-df_diff_plot %>%
-  mutate(metric_label=case_when(
-    metric=="av_esc" ~ "Mean escapement\n(thousands)",
-    metric=="av_ret" ~ "Mean return\n(thousands)"))
-##-----------------------------------------------------## plot return
-p<-df_diff_plot %>%
-  filter(metric=="av_ret") %>%
-  ggplot(aes(x=fct_inorder(trends),y=median,
-             color=fct_inorder(mgmt),group=mgmt)) +
-  geom_hline(yintercept=0,linetype="solid",linewidth=0.1)+ 
-  geom_line(linewidth=0.6) +
-  geom_point(size=2.5) + 
-  geom_point(shape=1,size=3,fill=NA,color="black") +
-  scale_colour_manual(values=colors)+
-  scale_y_continuous(expand=c(0.1,0.1),breaks=seq(-20,30,5)) +
-  theme_classic() +
-  labs(x="",y="Median difference in returns (%)") + 
-  labs(color="Method")+
-  facet_grid(cols=vars(factorMSY)) +
-  theme(strip.background=element_blank(),
-        strip.text.x=element_text(size=10),
         axis.line=element_line(linewidth=0.1),
         axis.text=element_text(size=10),
         axis.text.x=element_text(angle=90,vjust=0.5,hjust=1),
@@ -749,9 +680,10 @@ p<-df_diff_plot %>%
         panel.border=element_rect(fill=NA,linewidth=1),
         legend.key.size=unit(0.5,'cm'),
         legend.title=element_text(size=10),
-        legend.text=element_text(size=8),
-        legend.background=element_blank())
-ggsave("Figure9.pdf",p,width=4.5,height=4,units="in")
+        legend.text=element_text(size=8)
+  )
+g<-p+facet_grid(rows=vars(metric_label),cols=vars(factorMSY),scales="free_y", switch="y")+theme(strip.placement="outside")
+ggsave("Figure8.pdf",g,width=4.5,height=7,units="in")
 
 ##==================================================================##
 ##==================================================================##
