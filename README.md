@@ -1,8 +1,9 @@
 # Fishery management implications of demographic changes in salmon
 
-## Summary
+This repo contains code to reproduce results in Ohlberger et al. 2024 "Accounting for salmon size declines in fishery management can reduce conservation risks". 
 
-This repo contains code to reproduce results in Ohlberger et al. 2024 "Accounting for salmon size declines in fishery management can reduce conservation risks". We used an empirically based simulation approach to evaluate the fishery management implications of demographic changes that results from shifts in age, sex, and length compositions of mature salmon. 
+## Summary
+We used an empirically based simulation approach (similar to a Management Strategy Evaluation) to assess the fishery management implications of demographic changes that result from shifts in age, sex, and length compositions of mature salmon. We assumed that the harvest control rule used in fishery management was based on a stock-recruit analyses that estimated the stock size that produces maximum sustainable yield, as typically done for Pacific salmon. We then evaluated the performance of the fishery management when the stock-recruit analyses accounted for observed demographic trends by using total egg mass as reproductive unit and compared that to a traditional model using spawner abundance as metric of stock size. Performance was assesses by calculating the expected long-term average harvest and return, as well as metrics of conservation risk, such as the probability that returns or spawner abundance would drop below certain abundance thresholds. 
 
 
 ## Repository Structure 
