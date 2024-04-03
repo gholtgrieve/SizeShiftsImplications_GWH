@@ -12,9 +12,9 @@ fxn<-list.files(paste0(here::here(),"/R/functions/"))
 fxn<-fxn[fxn!="parameters.R"]
 invisible(sapply(FUN=source,paste0(here::here(),"/R/functions/",fxn)))
 ##==============================================================## scenarios
-scen<-data.frame(read_excel(paste0(here::here(),"/R/scenarios.xlsx"))) 
+scen<-data.frame(read_excel(paste0(here::here(),"/R/scenarios_NEW.xlsx"))) 
 nscen<-dim(scen)[1] ## number of scenarios
-niter<-1000 ## iterations per scenario
+niter<-100 ## iterations per scenario
 print(paste0("time estimate: ",round((niter*nscen/20)/60,2)," hours"))
 ##===========================================================## output lists
 output.list<-replicate(nscen,list(replicate(niter,list())))
@@ -48,7 +48,7 @@ time.save<-gsub(":","-",end.time)
 ##============================================================## save output
 path<-paste0(here::here(),"/R/out/")
 dir.create(file.path(path),showWarnings=F)
-setwd(file.path(paste0(path,timestamp)))
+setwd(file.path(paste0(path)))
 save.image(paste0(here::here(),"/R/out/run_",time.save,".Rdata"),compress=T)
 saveRDS(parms.list,paste0(here::here(),"/R/out/run_",time.save,"_parms.Rdata"))
 write.xlsx(scen,file=paste0(here::here(),"/R/out/run_",time.save,"_scen.xlsx"))
