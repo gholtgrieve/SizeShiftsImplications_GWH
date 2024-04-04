@@ -60,8 +60,8 @@ scenarios_all$factorMSY<-factor(
 ##==================================================================##
 colors<-c("deepskyblue3","orange")
 ##--------------------------------------------------------## functions
-## 90% and 50% ranges (5th-95th and 25th-75th quantiles)
 summary_CI90<-function(x) { return(data.frame(y=median(x,na.rm=T),ymin=quantile(x,prob=c(0.05),na.rm=T),ymax=quantile(x,prob=c(0.95),na.rm=T))) } 
+summary_CI80<-function(x) { return(data.frame(y=median(x,na.rm=T),ymin=quantile(x,prob=c(0.1),na.rm=T),ymax=quantile(x,prob=c(0.9),na.rm=T))) } 
 summary_CI50<-function(x) { return(data.frame(y=median(x,na.rm=T),ymin=quantile(x,prob=c(0.25),na.rm=T),ymax=quantile(x,prob=c(0.75),na.rm=T))) } 
 ##--------------------------------------------------------## directory
 dir.create(file.path(paste0(path,timestamp)),showWarnings=F)
@@ -136,7 +136,7 @@ p<-plot_egg_mass %>%
         axis.text=element_text(size=12),
         axis.text.x=element_text(angle=90,vjust=0.5,hjust=1),
         axis.title=element_text(size=12),
-        panel.border=element_rect(fill=NA,linewidth=1),
+        panel.border=element_rect(fill=NA,linewidth=0.5),
         legend.key.size=unit(0.4,'cm'),
         legend.title=element_text(size=9),
         legend.text=element_text(size=8),
@@ -147,77 +147,6 @@ ggsave("Figure2.pdf",p,width=4.2,height=5.5,units="in")
 ##==================================================================##
 ##=========================================================## Figure 3
 ##==================================================================##
-## plot differences in S_msy estimates compared to time-invariant model
-review_years<-seq((nyi+20),ny,goalfreq)
-nrev<-length(review_years)
-myarray<-array(NA,dim=c(nscen,niter,nrev))
-S_msy_scen<-myarray
-for(j in 1:nscen) { 
-  for(k in 1:niter) { 
-    s_msy_est<-as.vector(unlist(S_msy.list[[j]][[k]]))
-    if(length(s_msy_est)!=0) S_msy_scen[j,k,]<-s_msy_est
-  }
-} 
-##------------------------------------------------------## time period
-## evaluated after 50 years, i.e. after the historical period
-S_msy_hist<-S_msy_scen[,,which(review_years==nyh)]
-##------------------------------------------------## S_msy differences
-## DLM and YPR analysis compared to traditional model
-ref_msy_ind<-which(grepl("TRM",scenario_names,fixed=T)) 
-ypr_msy_ind<-which(grepl("YPR",scenario_names,fixed=T)) 
-dlm_msy_ind<-which(grepl("DLM",scenario_names,fixed=T))  
-n_diffs<-length(ref_msy_ind) ## number of scenarios to compare
-S_msy_diff_YPR<-S_msy_diff_DLM<-array(NA,dim=c(n_diffs,niter))
-for(i in 1:n_diffs){
-  ref_msys<-S_msy_hist[ref_msy_ind[i],]
-  ypr_msys<-S_msy_hist[ypr_msy_ind[i],]
-  dlm_msys<-S_msy_hist[dlm_msy_ind[i],]
-  S_msy_diff_YPR[i,]<-100*(ypr_msys-ref_msys)/ref_msys
-  S_msy_diff_DLM[i,]<-100*(dlm_msys-ref_msys)/ref_msys
-}
-use_all<-dplyr::select(scenarios,trends,selectivity,mgmt)
-##-----------------------------------------## add scenario information
-S_msy_df_YPR<-data.frame(cbind(use_all[ypr_msy_ind,],S_msy_diff_YPR)) %>% 
-  filter(trends!="ASL trends continued")
-S_msy_df_DLM<-data.frame(cbind(use_all[dlm_msy_ind,],S_msy_diff_DLM)) %>%
-  filter(trends!="ASL trends continued")
-S_msy_diffs<-data.frame(rbind(S_msy_df_YPR,S_msy_df_DLM))
-##------------------------------------------------------## long format
-plot_smsy<-S_msy_diffs %>% 
-  pivot_longer(!c(trends,selectivity,mgmt), names_to="iteration", values_to="value") %>% 
-  dplyr::select(-iteration) %>%
-  data.frame()
-plot_smsy<-plot_smsy[complete.cases(plot_smsy),] ## <1%
-##------------------------------------------------------------## plot
-jig<-position_dodge(width=0.5)
-p<-plot_smsy %>% 
-  ggplot(aes(x=fct_inorder(trends),y=value,color=fct_inorder(mgmt)))+
-  geom_hline(yintercept=0,linetype="solid",linewidth=0.1)+ 
-  scale_color_manual(values=colors)+
-  stat_summary(fun.data=summary_CI90,position=jig,linewidth=0.2)+
-  stat_summary(fun.data=summary_CI50,position=jig,linewidth=0.6)+
-  scale_y_continuous(breaks=seq(-100,150,25))+
-  coord_cartesian(ylim=c(-55,80))+
-  theme_classic()+
-  labs(color="Method")+ 
-  labs(x="",y=expression("Difference in "*S[MSY]*" (%)"))+ 
-  facet_grid(cols=vars(selectivity))+
-  theme(strip.background=element_blank(),
-        strip.text.x=element_text(size=10),
-        axis.line=element_line(linewidth=0.1),
-        axis.text=element_text(size=10),
-        axis.text.x=element_text(angle=90,vjust=0.5,hjust=1),
-        axis.title=element_text(size=10),
-        panel.border=element_rect(fill=NA,linewidth=1),
-        legend.key.size=unit(0.5,'cm'),
-        legend.title=element_text(size=10),
-        legend.text=element_text(size=8))
-# ggsave("Figure3.pdf",p,width=6,height=4,units="in")  
-
-##==================================================================##
-##=====================================================## new Figure 3
-##==================================================================##
-## plot S_msy estimates for all models
 review_years<-seq((nyi+20),ny,goalfreq)
 nrev<-length(review_years)
 myarray<-array(NA,dim=c(nscen,niter,nrev))
@@ -244,12 +173,15 @@ plot_smsy_df<-S_msy_df %>%
   data.frame()
 plot_smsy_df<-plot_smsy_df[complete.cases(plot_smsy_df),] ## <1%
 ##------------------------------------------------------------## plot
+## 50% and 80% quantiles!
 p<-plot_smsy_df %>% 
   ggplot(aes(x=fct_inorder(trends),y=value,color=fct_inorder(mgmt)))+
   scale_color_manual(values=c("darkgray",colors))+
-  stat_summary(fun.data=summary_CI90,position=jig,linewidth=0.2)+
+  #stat_summary(fun.data=summary_CI90,position=jig,linewidth=0.1)+
+  stat_summary(fun.data=summary_CI80,position=jig,linewidth=0.2)+
   stat_summary(fun.data=summary_CI50,position=jig,linewidth=0.6)+
-  # coord_cartesian(ylim=c(0,NA))+
+  # coord_cartesian(ylim=c(4800,19500))+
+  scale_y_continuous(breaks=seq(0,20000,4000),expand=c(0.02,0.02))+
   theme_classic()+
   labs(color="Method")+ 
   labs(x="",y=expression(""*S[MSY]*""))+ 
@@ -261,11 +193,17 @@ p<-plot_smsy_df %>%
         axis.text=element_text(size=10),
         axis.text.x=element_text(angle=90,vjust=0.5,hjust=1),
         axis.title=element_text(size=10),
-        panel.border=element_rect(fill=NA,linewidth=1),
+        panel.border=element_rect(fill=NA,linewidth=0.5),
         legend.key.size=unit(0.5,'cm'),
         legend.title=element_text(size=10),
         legend.text=element_text(size=8))
 ggsave("Figure3.pdf",p,width=6,height=4,units="in")  
+
+maxval<-quantile(plot_smsy_df$value[
+  plot_smsy_df$mgmt=="DLM" & 
+    plot_smsy_df$trends=="ASL trends stabilized" &
+    plot_smsy_df$selectivity=="large-mesh"],
+  prob=0.95)
 
 ##==================================================================##
 ##=========================================================## Figure 4
@@ -355,7 +293,7 @@ p<-dfp %>%
         axis.text=element_text(size=10),
         axis.text.x=element_text(angle=90,vjust=0.5,hjust=1),
         axis.title=element_text(size=12),
-        panel.border=element_rect(fill=NA,linewidth=1),
+        panel.border=element_rect(fill=NA,linewidth=0.5),
         legend.key.size=unit(0.5,'cm'),
         legend.title=element_text(size=10),
         legend.text=element_text(size=8))
@@ -422,7 +360,7 @@ p<-df_diff_plot %>%
         axis.text=element_text(size=10),
         axis.text.x=element_text(angle=90,vjust=0.5,hjust=1),
         axis.title=element_text(size=12),
-        panel.border=element_rect(fill=NA,linewidth=1),
+        panel.border=element_rect(fill=NA,linewidth=0.5),
         legend.key.size=unit(0.5,'cm'),
         legend.title=element_text(size=10),
         legend.text=element_text(size=8),
@@ -512,7 +450,7 @@ p<-df_av_ret_plot %>%
         legend.title=element_text(size=10),
         legend.text=element_text(size=8),
         legend.background=element_blank(),
-        panel.border=element_rect(fill=NA,linewidth=1))
+        panel.border=element_rect(fill=NA,linewidth=0.5))
 ggsave("Figure6.pdf",p,width=6.5,height=3,units="in")
 
 ##==================================================================##
@@ -529,7 +467,7 @@ df_esc_long<-data.frame(cbind(df_scen,av_esc_diff)) %>%
 df_all<-data.frame(cbind(df_harv_long,escapement=df_esc_long$escapement))
 ##-------------------------------------------------------------## plot
 p<-df_all %>% 
-  filter(mgmt!="TRM") %>% ## alternatives relative to traditional method
+  filter(mgmt!="TRM") %>% ## alternatives relative to traditional
   filter(selectivity=="large-mesh") %>% ## large-mesh selectivity
   filter(trends=="ASL trends continued") %>% ## continued trends
   dplyr::select(-c(selectivity,trends)) %>%
@@ -537,8 +475,8 @@ p<-df_all %>%
              color=fct_inorder(mgmt),group=fct_inorder(mgmt)))+
   geom_hline(yintercept=0,linetype="solid",color="black",linewidth=0.1)+
   geom_vline(xintercept=0,linetype="solid",color="black",linewidth=0.1)+
-  geom_point(size=1,shape=16,alpha=0.1)+
-  geom_point(size=0.1,shape=16)+
+  # geom_point(size=1,shape=16,alpha=0.1)+
+  geom_point(size=0.75,shape=16)+
   scale_colour_manual(values=colors)+
   scale_x_continuous(limits=c(-80,190),breaks=seq(-50,150,50))+
   scale_y_continuous(limits=c(-80,190),breaks=seq(-50,150,50))+
@@ -552,11 +490,13 @@ p<-df_all %>%
         axis.text.y=element_text(size=10,angle=0,vjust=0.5,hjust=0.5),
         axis.title.x=element_text(size=12,margin=margin(t=10,r=0,b=0,l=0)),
         axis.title.y=element_text(size=12,margin=margin(t=0,r=10,b=0,l=0)),
-        panel.border=element_rect(fill=NA,linewidth=1),
+        panel.border=element_rect(fill=NA,linewidth=0.5),
         legend.background=element_rect(fill='transparent'),
-        legend.position="none",
-        legend.key.size=unit(0.5,'cm'),
-        legend.title=element_text(size=10),
+        # legend.box.background=element_rect(linewidth=0.1),
+        # legend.position=c(0.9,0.1),
+        legend.position=c(0.1,0.95),
+        legend.key.size=unit(0.25,'cm'),
+        legend.title=element_blank(),
         legend.text=element_text(size=8),
         plot.margin=unit(c(1,1,1,1),"lines"))
 g<-ggMarginal(p,groupColour=TRUE,groupFill=TRUE,margins="both",size=5,type="density")
@@ -671,7 +611,7 @@ p<-dfp %>%
         axis.text=element_text(size=10),
         axis.text.x=element_text(angle=90,vjust=0.5,hjust=1),
         axis.title=element_text(size=12),
-        panel.border=element_rect(fill=NA,linewidth=1),
+        panel.border=element_rect(fill=NA,linewidth=0.5),
         legend.key.size=unit(0.5,'cm'),
         legend.title=element_text(size=10),
         legend.text=element_text(size=8)
