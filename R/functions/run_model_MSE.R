@@ -75,7 +75,6 @@ dimnames(ObsDat)<-list(c(seq(1,nyr)),onames)
 selectivities_by_age<-array(0,dim=c(nyr,nage)) ## selectivity by age
 
 ################################################### demographic trends
-#yrs_h<-(nyi+1):nyr
 max_yh<-nyi+nyh ## last year of historical period
 yrs_h<-(nyi+1):max_yh ## historical years index
 yrs_f<-(nyi+nyh+1):nyr ## future years index
@@ -120,6 +119,7 @@ meanSaA<-meanSaAdet+SaA_anoms
 ##=========================================## generate population data
 ##==================================================================##
 age_comp<-array(0,dim=c(nyr,nage,nsex))
+
 ##################################### generate first few years of data
 PopDat$Esc[1:nyi]<-round(exp(rnorm(nyi,log(S_msy_true)-0.5*0.25^2,0.25)))
 for(y in 1:nyi) {
@@ -174,7 +174,7 @@ if(harvmgmt %in% c("umsy_goal","u_eq_goal","umsy_dlm_goal")) {
 msygoal<-U_msy_true;msygoalini<-msygoal 
 }
 ##-------------------------------------## storing errors, bias, goals 
-impl_errors<-biases<-MSY_Goals<-HarvRates<-S_msy_estimate<-NA
+impl_errors<-MSY_Goals<-HarvRates<-S_msy_estimate<-NA
 
 ######################################## loop through esc goal reviews
 for(i in 1:nrev) { 
@@ -226,7 +226,7 @@ impl_err<-impl_errors[y]<-rnorm(1,mean=-0.5*harverr^2,sd=harverr)
 bias<-0
 escape<-round(msygoal*exp(impl_err+bias))
 PopDat$Esc[y]<-min(escape,PopDat$Ret[y]) ## no larger than return
-PopDat$Harv[y]<-harv_target<-PopDat$Ret[y]-PopDat$Esc[y]
+PopDat$Harv[y]<-PopDat$Ret[y]-PopDat$Esc[y]
 } ## end if statement
   
 ##===========================================## harvest by age and sex
@@ -260,9 +260,6 @@ index<-which(harv_by_age_sex[y,,1]>ret_by_age_sex[y,,1])
 if(length(index)>=1){harv_by_age_sex[y,index,1]<-ret_by_age_sex[y,index,1]}
 index<-which(harv_by_age_sex[y,,2]>ret_by_age_sex[y,,2])
 if(length(index)>=1){harv_by_age_sex[y,index,2]<-ret_by_age_sex[y,index,2]}
-##----------------------------------------------## check total harvest
-total_harv<-sum(harv_by_age_sex[y,,],na.rm=T)
-max_err<-10 ## accept error of ~1 fish/age-sex due to approximation
 
 ##=======================================## escapement by age and size
 esc_by_age_sex[y,,]<-ret_by_age_sex[y,,]-harv_by_age_sex[y,,]
@@ -327,7 +324,7 @@ ObsDat<-round(ObsDat)
 ##========================================## simulated population data
 data_all<-PopDat 
 data_all[is.na(data_all)]<-0
-year_index<-(nyi+1):(nyi+y_rev-nage-1) ## -nage to match reconstructed data
+year_index<-(nyi+1):(nyi+y_rev-nage-1) ## match reconstructed data
 nyrec<-length(year_index) ## number of reconstructed years
 data<-data.frame(data_all[year_index,])
 
@@ -335,13 +332,13 @@ data<-data.frame(data_all[year_index,])
 ##=====================================## Ricker fit to simulated data
 data$lnRS<-log(data$Rec/data$Esc)
 ##--------------------------------------------------------------## GLS
-mod_sim<-gls(lnRS~Esc,data=data,correlation=corAR1()) ## or corARMA(p=1,q=0)
+mod_sim<-gls(lnRS~Esc,data=data,correlation=corAR1()) 
 sig_sim<-summary(mod_sim)$sigma ## sigma to correct for log-normal error
 phi_sim<-coef(mod_sim$modelStruct$corStruct,unconstrained=FALSE)
 log_a_sim<-summary(mod_sim)$coefficients[1] ## log-productivity
 a_sim<-exp(log_a_sim) ## productivity (alpha)
 b_sim<- -summary(mod_sim)$coefficients[2] ## density-dependence (beta)
-alpha_sim<-exp(log_a_sim+((0.5*sig_sim^2)/(1-phi_sim^2))) ## corrected alpha
+alpha_sim<-exp(log_a_sim+((0.5*sig_sim^2)/(1-phi_sim^2))) ## corrected
 # alpha_sim<-exp(log_a_sim+(sig_sim^2)/(2*(1-phi_sim^2))) ## same
 beta_sim<-b_sim*(alpha_sim/a_sim) ## corrected beta value 
 S_msy_sim<-(1-lambert_W0(exp(1-log(alpha_sim))))/beta_sim
@@ -412,7 +409,7 @@ colnames(sr_obs)<-c("alpha","beta","rho","sigma")
 } ## end if statement 'harvmgmt'
 
 ##==============================================================## DLM
-## dynamic linear model with constant beta and time-varying alpha parameter
+## dynamic linear model with time-varying alpha and/or beta parameters
 if(harvmgmt %in% c("smsy_dlm_goal","umsy_dlm_goal")){
 dataDLM<-dplyr::select(dataObs,Rec=recRec,Esc=obsEsc)
 nrd<-dim(dataDLM)[1]
