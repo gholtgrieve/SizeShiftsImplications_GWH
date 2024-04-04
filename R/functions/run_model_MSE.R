@@ -11,19 +11,19 @@ if(k>3) plot<-F ## no plots when running many iterations
 #################################### generate stock-recruit parameters
 ##====================================## Ricker parameters and regimes
 ##------------------------------------------------------------## alpha
-alpha.low<-rlnorm(1,meanlog=log(alpha_mean),sdlog=sr_parms_sd) ## low production
+alpha.low<-rlnorm(1,meanlog=log(alpha_mean),sdlog=sr_parms_sd) 
 alpha.high<-alpha.low*regstr ## high productivity regime
 aset<-1 ## initial regime is assumed to be low productivity
 if(reglength==0) aset<-1 ## also without regime shifts
 alpha<-c(alpha.low,alpha.high)[aset] ## select alpha parameter
 ##--------------------------------------------------------## beta/rmax
-if(sr_corr!=0) { ## correlated parameters?  
+if(sr_corr!=0) { ## in case of correlated parameters
 beta_corr<-beta_mean*(1+(alpha-alpha_mean)*sr_corr) 
 beta<-rlnorm(1,meanlog=log(beta_corr),sdlog=sr_parms_sd)
 } else { 
 beta<-rlnorm(1,meanlog=log(beta_mean),sdlog=sr_parms_sd)
-} ## beta correlated or uncorrelated with alpha?
-maxr<-(alpha/beta)*exp(-1) ## Hilborn & Walters 1992 (maximum recruitment)
+}
+maxr<-(alpha/beta)*exp(-1) ## Hilborn & Walters 1992 (max recruitment)
 srparms<-c(alpha.low=alpha.low,alpha.high=alpha.high,beta=beta,maxr=maxr)
 ##------------------------------------------------------## S_msy/U_msy
 ## true value in absence of observation error (Scheuerell 2016)
@@ -54,7 +54,7 @@ rmax_egg<-(rmax_EMASL/rmax_N0)*maxr
 nage<-length(ages)
 sexes<-c("M","F")
 nsex<-length(sexes)
-nyr<-nyi+ny+nage+1 ## additional nage years dropped during reconstruction 
+nyr<-nyi+ny+nage+1 ## additional years dropped during reconstruction 
 Yvec<-c(seq(1,nyr))
 ##---------------------------------------------## true population data
 pnames<-c("Year","Ret","Rec","eps","reg","Esc","Harv","RepOut")
@@ -73,7 +73,7 @@ onames<-c("obsRet","obsEsc","obsHarv","RepOut")
 ObsDat<-data.frame(array(NA,dim=c(nyr,length(onames)))) 
 dimnames(ObsDat)<-list(c(seq(1,nyr)),onames) 
 ##----------------------------------------------## harvest selectivity
-selectivities_by_age<-array(0,dim=c(nyr,nage)) ## annual selectivity by age
+selectivities_by_age<-array(0,dim=c(nyr,nage)) ## selectivity by age
 
 ################################################### demographic trends
 #yrs_h<-(nyi+1):nyr
@@ -82,15 +82,14 @@ yrs_h<-(nyi+1):max_yh ## historical years index
 yrs_f<-(nyi+nyh+1):nyr ## future years index
 
 ##=========================================================## mean age
-## deterministic trend but actual age proportions drawn around mean by year
+## deterministic trend but age proportions drawn based on mean by year
 meanage<-NA
 meanage[1:nyi]<-meanageini
-# for(y in yrs_h) { meanage[y]<-meanage[y-1]+agetrend/(ny-nage) }
 for(y in yrs_h) { meanage[y]<-meanage[y-1]+agetrend/(nyh) }
 if(futureT=="yes") { for(y in yrs_f) meanage[y]<-meanage[y-1]+agetrend/(nyh) } else { meanage[yrs_f]<-meanage[max_yh] }
 
 ##===============================================## proportion female
-## propFtrend given as change over entire period in logit space
+## propF trend given as change over entire period in logit space
 propF_y<-NA;propF_y[1:nyi]<-logit(propF)  
 n_ref<-5
 # for(y in yrs_h){ propF_y[y]<-propF_y[y-1]+propFtrend/(ny) }
@@ -104,20 +103,18 @@ meanSaA<-meanSaAdet<-SaA_anoms<-array(0,dim=c(nyr,nage))
 dimnames(meanSaA)<-list(Yvec,paste0("age",ages))
 ##----------------------------------------## initial mean sizes at age
 oceanage<-ages[1:(length(ages)-2)] ## ocean ages
-growth<-function(age,Linf,k){ Linf*(1-exp(-k*age)) } ## vonB growth function
+growth<-function(age,Linf,k){ Linf*(1-exp(-k*age)) } ## growth function
 meansini<-round((ocean0s+growth(oceanage,Linf=(vonB_Linf-ocean0s),k=vonB_k))/10)*10 ## rounded to cm
 meanSaA_ini<-c(0,ocean0s,meansini) ## fish enter the ocean at age 2 (BY+2)
 ##--------------------------------------## size-at-age trend (mm/year)
-## sizetrends in total change (mm) over entire period
-#trendsSaA<-sizetrends/(ny-nage) ## for reconstructed time period 
 trendsSaA<-sizetrends/(nyh) ## for reconstructed time period 
 ##--------------------------------------## deterministic size at age
-for(y in 1:nyi){ meanSaAdet[y,]<-meanSaA_ini } ## same for inital years
+for(y in 1:nyi){ meanSaAdet[y,]<-meanSaA_ini } ## same for initial years
 for(y in yrs_h){ for(a in 1:nage){ meanSaAdet[y,a]<-meanSaAdet[y-1,a]+ trendsSaA[a] } }
 if(futureT=="yes"){ for(y in yrs_f){ for(a in 1:nage){ meanSaAdet[y,a]<-meanSaAdet[y-1,a]+ trendsSaA[a] } } } else { for(a in 1:nage){ meanSaAdet[yrs_f,a]<-mean(meanSaAdet[(max_yh-n_ref+1):max_yh,a]) } }
 ##-------------------------------------------## size-at-age anomalies
 for(a in 1:nage){ SaA_anoms[,a]<-rnorm(nyr,mean=0,sd=meanSaA_ini[a]*sdSaA) }
-##------------------------------------------## stoachastic size at age
+##-------------------------------------------## stochastic size at age
 meanSaA<-meanSaAdet+SaA_anoms
 
 ##==================================================================##
@@ -170,7 +167,7 @@ if(harvmgmt=="fix_harv_rate") goalfreq<-F
 firstrev<-20
 if(goalfreq) { goalrev<-seq(nyi+firstrev,ny,goalfreq) } else { goalrev<-ny }
 nrev<-length(goalrev)
-##-------------## set initial escapement goal as mean of initial escapements
+##-------## set initial escapement goal as mean of initial escapements
 if(harvmgmt %in% c("smsy_goal","s_eq_goal","smsy_dlm_goal")) { 
 msygoal<-S_msy_true;msygoalini<-msygoal 
 }
@@ -189,7 +186,7 @@ yindex<-(nycnt+1):(nyi+y_rev)
 ##===============================## generate subsequent years of data 
 MSY_Goals[yindex]<-msygoal 
 for(y in yindex) {
-## if regime shift this year switch productivity and change regime indicator
+## if regime shift switch productivity and change regime indicator
 if(reglength!=0){ 
 if(sample(c(rep(0,reglength-1),1),1)){ 
 if(aset==1) alpha<-alpha.low else alpha<-alpha.high
@@ -210,16 +207,16 @@ harvrate_det<-harvrate*(PopDat$Ret[y]/(PopDat$Ret[y]+round(maxr*0.1))) }
 harvrate_real<-ilogit(logit(harvrate_det)+impl_err) 
 if(is.na(harvrate_real)) harvrate_real<-0
 HarvRates[y]<-harvrate_real
-PopDat$Harv[y]<-round(PopDat$Ret[y]*harvrate_real) ## total harvest year y  
-PopDat$Esc[y]<-PopDat$Ret[y]-PopDat$Harv[y] ## escapement=return-harvest 
+PopDat$Harv[y]<-round(PopDat$Ret[y]*harvrate_real) ## total harvest
+PopDat$Esc[y]<-PopDat$Ret[y]-PopDat$Harv[y] ## escapement=return-harvest
 }  ## end if statement
 
 ##==================================## management by harvest rate goal
 if(harvmgmt %in% c("umsy_goal","u_eq_goal","umsy_dlm_goal")){
 ## fishery implementation error on logit scale
 impl_err<-impl_errors[y]<-rnorm(1,mean=0,sd=harverr) 
-harvrate_real<-ilogit(logit(msygoal)+impl_err) ## realized havest rate
-PopDat$Harv[y]<-round(PopDat$Ret[y]*harvrate_real) ## total harvest year y  
+harvrate_real<-ilogit(logit(msygoal)+impl_err) ## realized harvest rate
+PopDat$Harv[y]<-round(PopDat$Ret[y]*harvrate_real) ## total harvest  
 PopDat$Esc[y]<-PopDat$Ret[y]-PopDat$Harv[y] ## escapement=return-harvest
 }  ## end if statement
 
@@ -227,16 +224,14 @@ PopDat$Esc[y]<-PopDat$Ret[y]-PopDat$Harv[y] ## escapement=return-harvest
 if(harvmgmt %in% c("smsy_goal","s_eq_goal","smsy_dlm_goal")){
 ## fishery implementation normal error and bias on log-scale
 impl_err<-impl_errors[y]<-rnorm(1,mean=-0.5*harverr^2,sd=harverr)
-#bias<-biases[y]<-log10(PopDat$Ret[y]/msygoal)
-# bias<-biases[y]<-0.1*(PopDat$Ret[y]/msygoal) ## like Peterman et al. 2000
 bias<-0
 escape<-round(msygoal*exp(impl_err+bias))
-PopDat$Esc[y]<-min(escape,PopDat$Ret[y]) ## can't be larger than return
-PopDat$Harv[y]<-harv_target<-PopDat$Ret[y]-PopDat$Esc[y] ## harv=ret-esc
+PopDat$Esc[y]<-min(escape,PopDat$Ret[y]) ## no larger than return
+PopDat$Harv[y]<-harv_target<-PopDat$Ret[y]-PopDat$Esc[y]
 } ## end if statement
   
 ##===========================================## harvest by age and sex
-## harvest by age based on size-at-age using unequal probability sampling
+## harvest by age based on size-at-age (unequal probability sampling)
 ##-----------------------------------## age-sex proportions in return
 ret_prop_by_sex_y<-prop.table(ret_by_age_sex[y,,],1) ## this year
 ##----------------------------------## sum return by age across sexes
@@ -260,7 +255,7 @@ harv_by_age_sex[y,as.numeric(names(tab)),1]<-round(tab*fac*harv_prop_M)
 harv_prop_F<-ret_prop_by_sex_y[as.numeric(names(tab)),2]
 harv_by_age_sex[y,as.numeric(names(tab)),2]<-round(tab*fac*harv_prop_F)
 harv_by_age_sex[is.na(harv_by_age_sex)]<-0
-##------------------------## avoid overharvesting of age-by-sex groups
+##-----------------------## avoid over-harvesting of age-by-sex groups
 ## only needed with approximation
 index<-which(harv_by_age_sex[y,,1]>ret_by_age_sex[y,,1]) 
 if(length(index)>=1){harv_by_age_sex[y,index,1]<-ret_by_age_sex[y,index,1]}
@@ -268,8 +263,7 @@ index<-which(harv_by_age_sex[y,,2]>ret_by_age_sex[y,,2])
 if(length(index)>=1){harv_by_age_sex[y,index,2]<-ret_by_age_sex[y,index,2]}
 ##----------------------------------------------## check total harvest
 total_harv<-sum(harv_by_age_sex[y,,],na.rm=T)
-max_err<-10 ## accept error of up to ~1 fish/age-sex due to approximation
-# if(total_harv<=PopDat$Harv[y]-max_err | total_harv>=PopDat$Harv[y]+max_err) print("imprecise harvest")
+max_err<-10 ## accept error of ~1 fish/age-sex due to approximation
 
 ##=======================================## escapement by age and size
 esc_by_age_sex[y,,]<-ret_by_age_sex[y,,]-harv_by_age_sex[y,,]
@@ -523,6 +517,7 @@ H_eq<-H_eq<-round(eq_out[1])
 S_eq<-S_eqs<-round(eq_out[2])
 U_eq<-U_eqs<-round(H_eq/(H_eq+S_eq),4)
 } ## end if statement for 'harvmgmt'
+
 ######################################################### set new goal
 ## for management strategies that rely on re-evaluating MSY goal
 ##------------------------------------------------------------## S_msy
@@ -561,9 +556,8 @@ msygoal<-msygoal*factorMSY
 }
 
 ##==================================================================##
-##==================================================================##
-} ## end of loop over escapement goal reviews >>>> end of simulation part ##
-##==================================================================##
+} ## end of loop over escapement goal reviews > end of simulation part
+
 ##==================================================================##
 year_index<-(nyi+1):(nyi+ny-nage-1) ## reconstructed data period
 
@@ -612,7 +606,6 @@ data$meanSharv<-meansize_harv
 ##==================================================================##
 ##=======================## change in reproductive potential over time
 ##==================================================================##
-# use_ny<-nyrec ## all reconstructed years
 use_ny<-nyh ## all years of historical trends
 ny_obs<-dim(dataObs)[1]
 ##------------------------------------## simulated escapement age comp
@@ -678,6 +671,7 @@ colors<-c("goldenrod","forestgreen","darkorchid","dodgerblue","chocolate", "fire
 yrs<-seq(1,nyrec,1)
 ptitle<-paste0("scenario ",j)
 ricker_plot<-function(S,a,b) { a*S*exp(-b*S) } 
+
 ######################################################### demographics
 cols<-brewer.pal(length(ages),"Set1")
 ##======================================## brood year age composition
@@ -741,23 +735,18 @@ lines(meansize_esc,lwd=1,col=cols[2])
 lines(meansize_harv,lwd=1,col=cols[3])
 legend("bottomleft",c("return","escapement","harvest"),col=cols,lwd=1,cex=0.8,bty="n")
 ##====================================## average egg mass or fecundity
-#y1<-dataObs$AvPerSpawnerFecund;ylim<-c(0,11000)
-#y2<-dataObs$AvPerFemFecund
 y1<-dataObs$AvPerSpawnerEggmass;ylim<-c(0,2000)
 y2<-dataObs$AvPerFemEggmass
-# ylim<-c(0.95*min(y1),1.1*max(y1))
 plot(NA,NA,type="l",xlab="Return year",ylab="Mean fecundity",xlim=c(0,nyrec),ylim=ylim)
 lines(y1,col=cols_sex[2],lwd=1)
 lines(y2,col=cols_sex[3],lwd=1)
 legend("topright",c("per spawner","per female"),col=cols_sex[c(2,3)],lwd=1,cex=0.6,bty="n",seg.len=1.5)
+
 ########################################### population data - recruits
 ##============================================## recruitment anomalies
 plot(data$eps,type="l",xlab="Brood year",ylab="Recruitment anomaly", ylim=c(1.1*min(data$eps),1.1*max(data$eps)))
-# abline(h=0,lty=1,lwd=0.1) ## zero 
 abline(h=mean(data$eps),lty=2) ## true mean
 abline(h=(-0.5*procerr^2),lty=3) ## true mean
-##===========================================## brood year recruitment
-#plot(data$Rec,type="l",xlab="Brood year",ylab="Recruitment", ylim=c(0,1.2*max(data$Rec)))
 ##=================================================## recruits/spawner
 data$RperS<-round(data$Rec/data$Esc,3)
 plot(NA,NA,type="l",xlab="Brood year",ylab="Recruits/spawner",xlim=c(0,nyrec), ylim=c(0,max(data$RperS)*1.2))
@@ -765,11 +754,11 @@ plot(NA,NA,type="l",xlab="Brood year",ylab="Recruits/spawner",xlim=c(0,nyrec), y
 lines(data$RperS)
 abline(h=1,lty=3)
 box()
+
 ############################################# population data - return
 cols<-c("goldenrod1","forestgreen")
 ##========================================## total run size or harvest
 plot(data$Ret,type="l",xlab="Return year",ylab="Run abundance", ylim=c(0,1.2*max(data$Ret)))
-#plot(data$Harv,type="l",xlab="Return year",ylab="Harvest",ylim=c(0,1.2*max(data$Harv)))
 ##=====================================================## harvest rate
 plot(data$Harv/data$Ret,type="l",ylim=c(0,1),xlab="Return year",ylab="Harvest rate",lwd=2)
 if(harvmgmt=='fix_harv_rate') {
@@ -793,8 +782,6 @@ par(lwd=0.1)
 bp<-barplot(pdat,xlab="Return year",ylab="Abundance",col=cols[1:3],main="")
 legend("topleft",lnames,pch=22,pt.lwd=0.1,pt.bg=rev(cols),cex=0.8,bty="n")
 par(lwd=1);box() 
-##---------------------------------------------------## last esc goal
-# abline(h=msygoal,lty=2)
 ##-----------------------------------------------## esc goal over time
 if(harvmgmt %in% c('smsy_goal','s_eq_goal','smsy_dlm_goal')) {
 msygoal_allY<-MSY_Goals[year_index]
@@ -806,9 +793,7 @@ lines(seq(1,maxbp,length=ys),msygoal_allY,lty=1,lwd=1,col="black")
 plot(NA,NA,xlab="Return year",ylab="Harvest error/bias",xlim=c(0,nyrec),ylim=c(-1,1))
 lines(impl_errors[year_index],lty=1,lwd=1,col="black")
 lines(biases[year_index],lty=1,lwd=1,col="orange")
-#legend("bottomleft",c("error","bias"),col=c("black","orange"),lwd=1,cex=0.8,bty="n")
 ##==================================================## SR relationship
-## using parameters fit to simulated data
 max_esc<-max(data$Esc)
 esc<-seq(0,max_esc,length=1e3)
 xlim<-c(0,max_esc*1.2)
@@ -817,8 +802,8 @@ ylim<-c(0,max(data$Rec)*1.2)
 plot(NA,NA,xlab="Spawners",ylab="Recruits",xlim=xlim,ylim=ylim)
 abline(0,1,col="gray") ## replacement line
 lines(esc,ricker_plot(S=esc,a=alpha_sim,b=beta_sim),lwd=2)
-# cols<-data$reg;cols[cols==2]<-"gray50" ## in case of regime shifts
 points(data$Esc,data$Rec,pch=16,cex=0.8,col=1)
+
 ######################################################### observations
 ##=================================================## observed vs true
 plot(dataObs$obsRet~data$Ret,xlab="Simulated Return",ylab="Observed Return");abline(0,1)
