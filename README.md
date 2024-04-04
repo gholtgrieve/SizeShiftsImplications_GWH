@@ -13,9 +13,8 @@ The repo contains an 'R' folder with the following sub-directories:
 | ----------- | ---------------------------------------------------- |
 | `code`      | Contains code to run simulations and produce figures |
 | `functions` | Contains functions needed to run the simulations     |
-| `figures`   | Contains PDF copies of the main manuscript figures   |
 
-The R folder also contains a file with scenarios (`scenarios.xlsx`) that is read when running the `run_scenarios.R` script. That script also creates a local folder called `out` to save the scenario output, which is then loaded when plotting the results figures.
+The R folder further contains a file with scenarios (`scenarios.xlsx`) that is read when running the `run_scenarios.R` script. That script also creates a local folder called `out` to save the scenario output, which is then loaded when plotting the results figures.
 
 
 ## Analyses
