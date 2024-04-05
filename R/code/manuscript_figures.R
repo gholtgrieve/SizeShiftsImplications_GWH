@@ -27,17 +27,11 @@ for(i in 1:npara) { assign(names(parameters)[i],unlist(parameters[i])) }
 scenarios_all<-read_excel(paste0(path,"run_",timestamp,"_scen.xlsx"))[,-1]
 scenarios_all<-data.frame(scenarios_all)
 ##-------------------------------------## trends for old scenario file
-scenarios_all<-scenarios_all %>%
-  mutate(trends=case_when(
-    trends=="age-size trends" ~ "age-length trends",
-    trends=="age-size-sex trends" ~ "age-sex-length trends",
-    TRUE ~ as.character(trends)))
-##----------------------------------------------------## rename trends
-scenarios_all<-scenarios_all %>%
-  mutate(trends=case_when(
-    trends=="age-sex-length trends" ~ "ASL trends stabilized",
-    trends=="continuing trends" ~ "ASL trends continued",
-    TRUE ~ as.character(trends)))
+# scenarios_all<-scenarios_all %>%
+#   mutate(trends=case_when(
+#     trends=="age-size trends" ~ "age-length trends",
+#     trends=="age-size-sex trends" ~ "age-sex-length trends",
+#     TRUE ~ as.character(trends)))
 ##-----------------------------------------## rename and order factors
 scenarios_all$selectivity<-factor(
   scenarios_all$selectivity,
@@ -110,7 +104,7 @@ for(j in 1:nscen) {
 df_scen<-dplyr::select(scenarios,trends,selectivity,mgmt)
 df_egg_mass<-data.frame(cbind(df_scen,egg_trends)) %>%
   dplyr::filter(mgmt=="TRM") %>%
-  dplyr::filter(trends!="ASL trends continued")
+  dplyr::filter(trends!="continuing trends")
 df_egg_mass$trends<-as.factor(as.character(df_egg_mass$trends))
 plot_egg_mass<-df_egg_mass %>% 
   pivot_longer(!c(trends,selectivity,mgmt),names_to="iteration",values_to="value") %>% 
@@ -147,6 +141,15 @@ ggsave("Figure2.pdf",p,width=4.2,height=5.5,units="in")
 ##==================================================================##
 ##=========================================================## Figure 3
 ##==================================================================##
+
+##------------------------------------------------## now rename trends
+scenarios_all<-scenarios_all %>%
+  mutate(trends=case_when(
+    trends=="age-sex-length trends" ~ "ASL trends stabilized",
+    trends=="continuing trends" ~ "ASL trends continued",
+    TRUE ~ as.character(trends)))
+
+##------------------------------------------------------------## years
 review_years<-seq((nyi+20),ny,goalfreq)
 nrev<-length(review_years)
 myarray<-array(NA,dim=c(nscen,niter,nrev))
@@ -223,11 +226,17 @@ av_harv<-av_ret<-av_esc<-p_over_Rmax50<-p_over_Seq50<-myarray
 ##------------------------------------## loop scenarios and iterations
 for(j in 1:nscen) {
   for(k in 1:niter) {
+    ## recruitment
+    rec_jk<-data.frame(obs.list[[j]][[k]])$recRec[year_index]  
+    if(is.null(rec_jk)) { next } else { 
+      ## probability above/below threshold
+      ricker_parms<-data.frame(sr_sim.list[[j]][[k]])
+      R_max<-(ricker_parms$alpha/ricker_parms$beta)*exp(-1)
+      p_over_Rmax50[j,k]<-length(which(rec_jk>R_max*0.5))/length(ret_jk)
+    }
     ## escapement
     esc_jk<-data.frame(obs.list[[j]][[k]])$obsEsc[year_index]  
     if(is.null(esc_jk)) { next } else {
-      ## long-term average escapement
-      av_esc[j,k]<-mean(esc_jk,na.rm=T)
       ## probability of escapement above 50% of S_zero
       ricker_parms<-data.frame(sr_sim.list[[j]][[k]])
       S_eq<-log(ricker_parms$alpha)/ricker_parms$beta
@@ -244,10 +253,6 @@ for(j in 1:nscen) {
     if(is.null(ret_jk)) { next } else { 
       ## long-term average return
       av_ret[j,k]<-mean(ret_jk,na.rm=T)
-      ## probability above/below threshold
-      ricker_parms<-data.frame(sr_sim.list[[j]][[k]])
-      R_max<-(ricker_parms$alpha/ricker_parms$beta)*exp(-1)
-      p_over_Rmax50[j,k]<-length(which(ret_jk>R_max*0.5))/length(ret_jk)
     }
   } ## end k-loop
 } ## end j-loop
@@ -536,11 +541,17 @@ av_harv<-av_ret<-av_esc<-p_over_Rmax50<-p_over_Seq50<-myarray
 nbc<-nscen_base_cases ## factorMSY==1 cases
 for(j in 1:nscen) {
   for(k in 1:niter) { 
-    ##---------------------------------------------------## escapement
+    ## recruitment
+    rec_jk<-data.frame(obs.list[[nbc+j]][[k]])$recRec[year_index]  
+    if(is.null(rec_jk)) { next } else { 
+      ## probability above/below threshold
+      ricker_parms<-data.frame(sr_sim.list[[nbc+j]][[k]])
+      R_max<-(ricker_parms$alpha/ricker_parms$beta)*exp(-1)
+      p_over_Rmax50[j,k]<-length(which(rec_jk>R_max*0.5))/length(ret_jk)
+    }
+    ## escapement
     esc_jk<-data.frame(obs.list[[nbc+j]][[k]])$obsEsc[year_index]  
     if(is.null(esc_jk)) { next } else { 
-      ## long-term average escapement
-      av_esc[j,k]<-mean(esc_jk,na.rm=T)
       ## probability of escapement above 50% of S_zero
       ricker_parms<-data.frame(sr_sim.list[[nbc+j]][[k]])
       if(is.null(ricker_parms$alpha)) { next } else { 
@@ -548,23 +559,17 @@ for(j in 1:nscen) {
         p_over_Seq50[j,k]<-length(which(esc_jk>0.5*S_eq))/length(esc_jk)
       }
     }
-    ##----------------------------------------------------## harvest
+    ## harvest
     harv_jk<-data.frame(obs.list[[nbc+j]][[k]])$obsHarv[year_index]  
     if(is.null(harv_jk)) { next } else { 
       ## long-term average harvest
       av_harv[j,k]<-mean(harv_jk,na.rm=T)
     }
-    ##----------------------------------------------------## return
+    ## return
     ret_jk<-data.frame(obs.list[[nbc+j]][[k]])$obsRet[year_index]  
     if(is.null(ret_jk)) { next } else { 
       ## long-term average return
       av_ret[j,k]<-mean(ret_jk,na.rm=T)
-      ## maximum recruitment given Ricker parameters
-      ricker_parms<-data.frame(sr_sim.list[[nbc+j]][[k]]) 
-      if(is.null(ricker_parms$alpha)) { next } else { 
-        R_max<-(ricker_parms$alpha/ricker_parms$beta)*exp(-1)
-        p_over_Rmax50[j,k]<-length(which(ret_jk>R_max*0.5))/length(ret_jk)
-      }
     }
   } ## end k-loop
 } ## end j-loop
