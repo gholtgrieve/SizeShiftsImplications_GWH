@@ -13,7 +13,7 @@ fxn<-list.files(paste0(home,"/R/functions/"))
 fxn<-fxn[fxn!="parameters.R"]
 invisible(sapply(FUN=source,paste0(home,"/R/functions/",fxn)))
 ##========================================================## scenarios
-scen<-data.frame(read_excel(paste0(home,"/R/scenarios.xlsx")))
+scen<-data.frame(read_excel(paste0(home,"/R/scenarios.xlsx"))) 
 nscen<-dim(scen)[1] ## number of scenarios
 niter<-1000 ## iterations per scenario
 print(paste0("time estimate: ",round((niter*nscen/20)/60,2)," hours"))
