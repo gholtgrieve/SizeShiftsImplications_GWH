@@ -3,7 +3,7 @@
 ##                Plot simulation model results for MSE             ##
 ##                                                                  ##
 ##==================================================================##
-pkgs<-c("here","tidyverse","readxl","ggExtra")
+pkgs<-c("here","tidyverse","readxl","ggExtra","gsl")
 if(length(setdiff(pkgs,rownames(installed.packages())))>0) {install.packages(setdiff(pkgs,rownames(installed.packages())),dependencies=TRUE)}
 invisible(lapply(pkgs,library,character.only=T))
 
@@ -50,7 +50,7 @@ scenarios_all$factorMSY<-factor(
 ##==================================================================##
 ##====================================================## plot settings
 ##==================================================================##
-colors<-c("deepskyblue3","orange")
+colors<-c("darkgray","deepskyblue3","orange")
 ##--------------------------------------------------------## functions
 summary_CI90<-function(x) { return(data.frame(y=median(x,na.rm=T),ymin=quantile(x,prob=c(0.05),na.rm=T),ymax=quantile(x,prob=c(0.95),na.rm=T))) } 
 summary_CI80<-function(x) { return(data.frame(y=median(x,na.rm=T),ymin=quantile(x,prob=c(0.1),na.rm=T),ymax=quantile(x,prob=c(0.9),na.rm=T))) } 
@@ -106,16 +106,19 @@ plot_smsy_df<-S_msy_df %>%
 plot_smsy_df<-plot_smsy_df[complete.cases(plot_smsy_df),] ## <1%
 ##------------------------------------------------------------## plot
 ## 50% and 80% quantiles!
+jig<-position_dodge(width=0.6)
 p<-plot_smsy_df %>% 
   ggplot(aes(x=fct_inorder(trends),y=value,color=fct_inorder(mgmt)))+
-  scale_color_manual(values=c("darkgray",colors))+
+  # ggplot(aes(x=fct_inorder(trends),y=value,color=fct_inorder(mgmt), shape=fct_inorder(mgmt)))+
+  scale_color_manual(values=colors)+
+  # scale_shape_manual(values=c(15,16,18))+ ## fill: c(21,22,23)
   #stat_summary(fun.data=summary_CI90,position=jig,linewidth=0.1)+
   stat_summary(fun.data=summary_CI80,position=jig,linewidth=0.2)+
   stat_summary(fun.data=summary_CI50,position=jig,linewidth=0.6)+
   # coord_cartesian(ylim=c(4800,19500))+
   scale_y_continuous(breaks=seq(0,20000,4000),expand=c(0.02,0.02))+
   theme_classic()+
-  labs(color="Method")+ 
+  labs(color="Method",shape="Method")+ 
   labs(x="",y=expression(""*S[MSY]*""))+ 
   facet_grid(cols=vars(selectivity),scales="free_y")+
   # facet_wrap(vars(selectivity),ncol=n_select,scales="free_y")+
@@ -204,7 +207,6 @@ df$p_over_Rmax50<-apply(p_over_Rmax50,1,function(x) median(x,na.rm=T))
 df$p_over_Seq50<-apply(p_over_Seq50,1,function(x) median(x,na.rm=T))
 ##------------------------------------------------------## long format
 dfp<-df %>% 
-  dplyr::select(-S_ratio) %>%
   pivot_longer(!c(trends,selectivity,mgmt),names_to="metric",values_to="median") %>% 
   data.frame()
 ##-------------------------------------------## add labels for metrics
@@ -224,7 +226,7 @@ p<-dfp %>%
   geom_line(lwd=0.5) +
   geom_point(shape=1,size=2.5,fill=NA,color="black") +
   geom_point(size=2.2) + 
-  scale_colour_manual(values=c("darkgray",colors))+
+  scale_colour_manual(values=colors)+
   scale_y_continuous(expand=c(0.07,0.07),limits=c(0,NA)) +
   theme_classic() +
   labs(x="",y="") + 
@@ -312,7 +314,7 @@ p<-df_diff_plot %>%
   geom_line(linewidth=0.6) +
   geom_point(size=2.5) + 
   geom_point(shape=1,size=3,fill=NA,color="black") +
-  scale_colour_manual(values=colors)+
+  scale_colour_manual(values=colors[-1])+
   scale_y_continuous(expand=c(0.1,0.1),breaks=seq(-20,30,5)) +
   theme_classic() +
   labs(x="",y="Median difference in returns (%)") + 
@@ -396,7 +398,7 @@ p<-df_av_ret_plot %>%
   geom_line(linewidth=0.5) +
   geom_point(shape=1,size=2.5,fill=NA,color="black") +
   geom_point(size=2.2) + 
-  scale_colour_manual(values=colors)+
+  scale_colour_manual(values=colors[-1])+
   scale_y_continuous(expand=c(0.1,0.1)) +
   scale_x_continuous(expand=c(0.1,0.1)) +
   theme_classic() +
@@ -441,7 +443,7 @@ p<-df_all %>%
   geom_vline(xintercept=0,linetype="solid",color="black",linewidth=0.1)+
   # geom_point(size=1,shape=16,alpha=0.1)+
   geom_point(size=0.75,shape=16)+
-  scale_colour_manual(values=colors)+
+  scale_colour_manual(values=colors[-1])+
   scale_x_continuous(limits=c(-80,190),breaks=seq(-50,150,50))+
   scale_y_continuous(limits=c(-80,190),breaks=seq(-50,150,50))+
   theme_classic()+
@@ -563,7 +565,7 @@ p<-dfp %>%
   geom_line(lwd=0.5) +
   geom_point(shape=1,size=2.5,fill=NA,color="black") +
   geom_point(size=2.2) + 
-  scale_colour_manual(values=c("darkgray",colors))+
+  scale_colour_manual(values=colors)+
   scale_y_continuous(expand=c(0.07,0.07),limits=c(0,NA)) +
   theme_classic() +
   labs(x="",y="") + 
