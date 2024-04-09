@@ -4,6 +4,7 @@
 .Ruserdata
 out
 figures
+simulated
 figures_other.R
 figureS1.R
 figureS2.R
