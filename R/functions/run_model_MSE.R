@@ -657,7 +657,7 @@ change[i,h]<-round((latemean-earlymean)*100/earlymean,2)
 ##==================================================================##
 ##======================================================## save output
 ##==================================================================##
-output.list<-list("para"=srparms,"sr_sim"=sr_sim,"fec"=change[3,],"egg"=change[4,],"S_msy"=S_msy_estimate,"data"=data,"obs"=dataObs)
+output.list<-list("para"=srparms,"sr_sim"=sr_sim,"fec"=change[3,], "egg"=change[4,],"S_msy"=S_msy_estimate,"data"=data,"obs"=dataObs, "ret_by_age"=ret_by_age,"meanSaA"=meanSaA,"propfemale"=propfemale, "selectivities_by_age"=selectivities_by_age,"MSY_Goals"=MSY_Goals, "impl_errors"=impl_errors)
 ##----------------------------------------------------## return lists
 return(output.list)
 }) ## end parameter loop
