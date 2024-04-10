@@ -10,16 +10,17 @@ invisible(lapply(pkgs,library,character.only=T))
 ##==================================================================##
 ##=====================================================## load results
 ##==================================================================##
-path<-paste0(here::here(),"/R/out/")
+main<-paste0(here::here(),"/R/out/")
 
 ##=======================================================## simulation
-# myfiles<-list.files(path,pattern="\\.Rdata$")
+# myfiles<-list.files(main,pattern="\\.Rdata$")
 # myfile<-myfiles[grep("parms",myfiles,invert=TRUE)]
 # load(paste0(here::here(),"/R/out/",myfile))
 # timestamp<-substr(myfile,5,nchar(myfile)-6)
 
 ##=======================================================## saved file
 timestamp<-"2024-03-22 13-19-52.529517"
+path<-paste0(main,timestamp,"/")
 load(paste0(path,"run_",timestamp,".Rdata"))
 
 ##=======================================================## parameters
@@ -45,7 +46,7 @@ scenarios_all<-scenarios_all %>%
 scenarios_all$factorMSY<-factor(
   scenarios_all$factorMSY,
   levels=c("0.75","1","1.5"),
-  labels=c("aggressive","1","precautionary"))
+  labels=c("liberal","1","precautionary"))
 
 ##==================================================================##
 ##====================================================## plot settings
@@ -508,7 +509,7 @@ for(j in 1:nscen) {
       ## probability above/below threshold
       ricker_parms<-data.frame(sr_sim.list[[nbc+j]][[k]])
       R_max<-(ricker_parms$alpha/ricker_parms$beta)*exp(-1)
-      p_over_Rmax50[j,k]<-length(which(rec_jk>R_max*0.5))/length(ret_jk)
+      p_over_Rmax50[j,k]<-length(which(rec_jk>R_max*0.5))/length(rec_jk)
     }
     ## escapement
     esc_jk<-data.frame(obs.list[[nbc+j]][[k]])$obsEsc[year_index]  
