@@ -57,8 +57,8 @@ summary_CI90<-function(x) { return(data.frame(y=median(x,na.rm=T),ymin=quantile(
 summary_CI80<-function(x) { return(data.frame(y=median(x,na.rm=T),ymin=quantile(x,prob=c(0.1),na.rm=T),ymax=quantile(x,prob=c(0.9),na.rm=T))) } 
 summary_CI50<-function(x) { return(data.frame(y=median(x,na.rm=T),ymin=quantile(x,prob=c(0.25),na.rm=T),ymax=quantile(x,prob=c(0.75),na.rm=T))) } 
 ##--------------------------------------------------------## directory
-dir.create(file.path(paste0(path,timestamp)),showWarnings=F)
-setwd(file.path(paste0(path,timestamp)))
+dir.create(file.path(paste0(path)),showWarnings=F)
+setwd(file.path(paste0(path)))
 
 ##==================================================================##
 ##=====================================================## factorMSY==1
@@ -136,7 +136,7 @@ p<-plot_smsy_df %>%
 ggsave("Figure2.pdf",p,width=6,height=4,units="in")  
 
 ##====================================================## rename trends
-scenarios_all<-scenarios_all %>%
+scenarios<-scenarios %>%
   mutate(trends=case_when(
     trends=="age-sex-length trends" ~ "ASL trends stabilized",
     trends=="continuing trends" ~ "ASL trends continued",
@@ -156,7 +156,7 @@ myarray<-array(dim=c(nscen,niter),dimnames=dnames)
 ###---------------------------------------## performance last 50 years
 year_index<-(nyh+1):ny_obs ## most recent years after historical period
 ##----------------------------------------------------------## metrics
-av_harv<-av_ret<-av_esc<-p_over_Rmax50<-p_over_Seq50<-S_ratio<-myarray 
+av_harv<-av_ret<-av_esc<-p_over_Rmax50<-p_over_Seq50<-S_ratio<-myarray
 ##------------------------------------## loop scenarios and iterations
 for(j in 1:nscen) {
   for(k in 1:niter) {
@@ -214,7 +214,7 @@ dfp<-df %>%
 dfp<-dfp %>%
   mutate(metric_label=case_when(
     metric=="av_harv" ~ "Mean harvest\n(thousands)",
-    metric=="av_ret" ~ "Mean return\n(thousands)",
+    metric=="av_ret" ~ "Mean run size\n(thousands)",
     metric=="p_over_Rmax50" ~ "Probability\nabove 50% Rmax",
     metric=="p_over_Seq50" ~ "Probability\nabove 50% S0"))
 ##----------------------------------------------------## select trends
@@ -300,7 +300,7 @@ df_diff_plot<-df_diff %>%
 df_diff_plot<-df_diff_plot %>%
   mutate(metric_label=case_when(
     metric=="av_esc" ~ "Mean escapement\n(thousands)",
-    metric=="av_ret" ~ "Mean return\n(thousands)"))
+    metric=="av_ret" ~ "Mean run size\n(thousands)"))
 ##----------------------------------------------------## select trends
 df_diff_plot<-dplyr::filter(df_diff_plot,trends!="age-length trends")
 df_diff_plot$trends<-as.factor(as.character(df_diff_plot$trends))
@@ -318,7 +318,7 @@ p<-df_diff_plot %>%
   scale_colour_manual(values=colors[-1])+
   scale_y_continuous(expand=c(0.1,0.1),breaks=seq(-20,30,5)) +
   theme_classic() +
-  labs(x="",y="Median difference in returns (%)") + 
+  labs(x="",y="Median difference in run size (%)") + 
   labs(color="Method")+
   facet_grid(cols=vars(selectivity)) +
   theme(strip.background=element_blank(),
@@ -403,7 +403,7 @@ p<-df_av_ret_plot %>%
   scale_y_continuous(expand=c(0.1,0.1)) +
   scale_x_continuous(expand=c(0.1,0.1)) +
   theme_classic() +
-  labs(x="Year",y="Median difference in returns (%)") + 
+  labs(x="Year",y="Median difference in run size (%)") + 
   labs(color="Method")+
   facet_grid(cols=vars(selectivity),switch="y")+
   theme(strip.background=element_blank(),
@@ -476,7 +476,13 @@ ggsave("Figure6.pdf",g,width=4,height=4,units="in")
 ##-----------------------------------------------------## factorMSY!=1
 scenarios<-scenarios_all[scenarios_all$factorMSY!=1,]
 scenarios$factorMSY<-as.factor(as.character(scenarios$factorMSY))
-nscen<-dim(scenarios)[1]		
+nscen<-dim(scenarios)[1]
+##---------------------------------------------------## rename trends
+scenarios<-scenarios %>%
+  mutate(trends=case_when(
+    trends=="age-sex-length trends" ~ "ASL trends stabilized",
+    trends=="continuing trends" ~ "ASL trends continued",
+    TRUE ~ as.character(trends)))
 ##---------------------------------------------------## scenario names
 scenario_names<-paste0(scenarios$trends," ",scenarios$mgmt," ", scenarios$factorMSY)
 ##--------------------------------------------------## names of trends
@@ -556,7 +562,7 @@ dfp<-df %>%
 dfp<-dfp %>%
   mutate(metric_label=case_when(
     metric=="av_harv" ~ "Mean harvest\n(thousands)",
-    metric=="av_ret" ~ "Mean return\n(thousands)",
+    metric=="av_ret" ~ "Mean run size\n(thousands)",
     metric=="p_over_Rmax50" ~ "Probability\nabove 50% Rmax",
     metric=="p_over_Seq50" ~ "Probability\nabove 50% S0"))
 ##-------------------------------------------------------------## plot
