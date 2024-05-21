@@ -16,7 +16,7 @@ ny=110, ## number of total years with trends (ny-10 reconstructed)
 futureT=scen$futureT[j], ## continue trends beyond historical period?
 obserr=0.2, ## observation error of escapement (default=0.2)
 hobserr=0.1, ## observation error of harvest (default=0.1)
-harverr=0.3, ## harvest implementation error (default=0.3) 
+harverr=0.15, ## harvest implementation error (default=0.3) 
 reglength=20, ## inverse probability of regime shift
 regstr=1, ## low/high productivity factor (default=1)
 harvmgmt=paste0(scen$mgmt)[j], ## 'smsy', 'umsy' or 'fix_harv_rate'

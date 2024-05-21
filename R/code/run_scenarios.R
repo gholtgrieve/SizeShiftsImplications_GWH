@@ -15,9 +15,10 @@ invisible(sapply(FUN=source,paste0(home,"/R/functions/",fxn)))
 ##========================================================## scenarios
 scen<-data.frame(read_excel(paste0(home,"/R/scenarios.xlsx"))) 
 # scen<-scen[c(4,8,12),]
-scen<-scen[c(3,7,11),]
+# scen<-scen[c(3,7,11),]
+scen<-scen %>% filter(selectivity=="unselective") %>% filter(factorMSY==1) 
 nscen<-dim(scen)[1] ## number of scenarios
-niter<-3 ## iterations per scenario
+niter<-1000 ## iterations per scenario
 print(paste0("time estimate: ",round((niter*nscen/20)/60,2)," hours"))
 ##=====================================================## output lists
 output.list<-replicate(nscen,list(replicate(niter,list())))
