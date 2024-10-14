@@ -494,7 +494,7 @@ S_as<-N_as*(1-U_as) ## equilibrium spawners by age
 S<-sum(S_as) ## total equilibrium spawners: Smsy if maximizing harvest
 Z_as<-S_as*z_as ## total equilibrium reproductive output by age
 Z<-sum(Z_as) ## total equilibrium reproductive output
-H_as<-N_as*U_as ## equilibrium harvest by age/sex
+H_as<-N_as*U_as ## equilibrium harvest by age
 H<-sum(H_as) ## total equilibrium harvest
 output=c(H=H,S=S,R=RF,Z_million=Z/1e6) ## bundle the output
 return(output) ## return the output
