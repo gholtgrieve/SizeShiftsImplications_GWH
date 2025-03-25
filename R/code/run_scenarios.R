@@ -1,7 +1,7 @@
 ##==================================================================##
 ##                                                                  ##
 ##                      Run scenarios for MSE                       ##
-##                                                                  ##
+#                                                                   ##
 ##==================================================================##
 ##=========================================================## packages
 pkgs<-c("here","readxl","openxlsx","dplyr","gtools","faraway","gsl", "nlme","matrixcalc","data.table","dlm","progress")
@@ -16,7 +16,7 @@ invisible(sapply(FUN=source,paste0(home,"/R/functions/",fxn)))
 scen<-data.frame(read_excel(paste0(home,"/R/scenarios.xlsx"))) 
 # scen<-scen[c(4,8,12),]
 # scen<-scen[c(3,7,11),]
-scen<-scen %>% filter(selectivity=="unselective") %>% filter(factorMSY==1) 
+# scen<-scen %>% filter(selectivity=="unselective") %>% filter(factorMSY==1) 
 nscen<-dim(scen)[1] ## number of scenarios
 niter<-1000 ## iterations per scenario
 print(paste0("time estimate: ",round((niter*nscen/20)/60,2)," hours"))

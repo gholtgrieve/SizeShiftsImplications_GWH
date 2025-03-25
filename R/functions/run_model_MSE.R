@@ -569,7 +569,7 @@ esc_by_age<-esc_by_age[year_index,]
 ret_by_age<-rowSums(ret_by_age_sex,dims=2)
 ret_by_age[is.na(ret_by_age)]<-0
 ret_by_age<-ret_by_age[year_index,]
-##--------------------------------------------------## age comp return
+##--------------------------------------------------## age comp harvest
 harv_by_age<-rowSums(harv_by_age_sex,dims=2)
 harv_by_age[is.na(harv_by_age)]<-0
 harv_by_age<-harv_by_age[year_index,]

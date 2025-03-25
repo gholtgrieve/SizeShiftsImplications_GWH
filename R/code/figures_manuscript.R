@@ -3,7 +3,7 @@
 ##                Plot simulation model results for MSE             ##
 ##                                                                  ##
 ##==================================================================##
-pkgs<-c("here","tidyverse","readxl","ggExtra","gsl")
+pkgs<-c("here","tidyverse","readxl","ggExtra","gsl", "scales")
 if(length(setdiff(pkgs,rownames(installed.packages())))>0) {install.packages(setdiff(pkgs,rownames(installed.packages())),dependencies=TRUE)}
 invisible(lapply(pkgs,library,character.only=T))
 
@@ -19,8 +19,8 @@ main<-paste0(here::here(),"/R/out/")
 # timestamp<-substr(myfile,5,nchar(myfile)-6)
 
 ##=======================================================## saved file
-timestamp<-"2024-03-22 13-19-52.529517"
-path<-paste0(main,timestamp,"/")
+timestamp<-"2025-03-24 15-30-41.765992"
+path<-paste0(main,"/")
 load(paste0(path,"run_",timestamp,".Rdata"))
 
 ##=======================================================## parameters
@@ -52,7 +52,7 @@ scenarios_all$factorMSY<-factor(
 ##====================================================## plot settings
 ##==================================================================##
 colors<-c("darkgray","deepskyblue3","orange")
-##--------------------------------------------------------## functions
+##--------------------------------------------------------## Summary Functions
 summary_CI90<-function(x) { return(data.frame(y=median(x,na.rm=T),ymin=quantile(x,prob=c(0.05),na.rm=T),ymax=quantile(x,prob=c(0.95),na.rm=T))) } 
 summary_CI80<-function(x) { return(data.frame(y=median(x,na.rm=T),ymin=quantile(x,prob=c(0.1),na.rm=T),ymax=quantile(x,prob=c(0.9),na.rm=T))) } 
 summary_CI50<-function(x) { return(data.frame(y=median(x,na.rm=T),ymin=quantile(x,prob=c(0.25),na.rm=T),ymax=quantile(x,prob=c(0.75),na.rm=T))) } 
@@ -79,7 +79,7 @@ n_select<-length(selectivity_names)
 
 ##==================================================================##
 ##=========================================================## Figure 2
-##==================================================================##
+##================================================================####
 review_years<-seq((nyi+20),ny,goalfreq)
 nrev<-length(review_years)
 myarray<-array(NA,dim=c(nscen,niter,nrev))
@@ -117,7 +117,8 @@ p<-plot_smsy_df %>%
   stat_summary(fun.data=summary_CI80,position=jig,linewidth=0.2)+
   stat_summary(fun.data=summary_CI50,position=jig,linewidth=0.6)+
   # coord_cartesian(ylim=c(4800,19500))+
-  scale_y_continuous(breaks=seq(0,20000,4000),expand=c(0.02,0.02))+
+  #scale_y_continuous(breaks=seq(0,20000,4000),expand=c(0.02,0.02))+
+  scale_y_continuous(n.breaks=4,expand=c(0.02,0.02), labels = scales::comma)+
   theme_classic()+
   labs(color="Method",shape="Method")+ 
   labs(x="",y=expression(""*S[MSY]*""))+ 
@@ -131,6 +132,7 @@ p<-plot_smsy_df %>%
         axis.title=element_text(size=10),
         panel.border=element_rect(fill=NA,linewidth=0.5),
         legend.key.size=unit(0.5,'cm'),
+        
         legend.title=element_text(size=10),
         legend.text=element_text(size=8))
 ggsave("Figure2.pdf",p,width=6,height=4,units="in")  
@@ -138,13 +140,14 @@ ggsave("Figure2.pdf",p,width=6,height=4,units="in")
 ##====================================================## rename trends
 scenarios<-scenarios %>%
   mutate(trends=case_when(
+    trends=="no trends" ~ "No trends",
     trends=="age-sex-length trends" ~ "ASL trends stabilized",
     trends=="continuing trends" ~ "ASL trends continued",
     TRUE ~ as.character(trends)))
 
 ##==================================================================##
 ##=========================================================## Figure 3
-##==================================================================##
+##================================================================####
 ## plot management performance metrics for each estimation method
 ##---------------------------## number of reconstructed observed years
 ny_obs<-dim(data.frame(obs.list[[1]][[1]]))[1]
@@ -266,6 +269,8 @@ S_ratios_by_mgmt<-S_ratios %>%
 ##---------------------------------------------------## overall median
 S_ratios_median<-median(S_ratios$S_ratio) ## ~1.5
 ## use for precautionary scenarios to emulate S_max as reference point
+
+
 
 ##==================================================================##
 ##=========================================================## Figure 4
