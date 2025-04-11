@@ -3,4 +3,6 @@
 .RData
 .RDataTmp
 .Ruserdata
+.out
+.figures
 other
